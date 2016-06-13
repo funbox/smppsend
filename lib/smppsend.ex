@@ -93,6 +93,7 @@ defmodule Smppsend do
     |> bind
     |> send_messages
     |> wait_dlrs
+    |> wait
   end
 
   defp parse(args) do
@@ -394,8 +395,83 @@ defmodule Smppsend do
     end)
   end
 
+  defp wait_dlrs({esme, opts, []}) do
+    {esme, opts}
+  end
   defp wait_dlrs({esme, opts, message_ids}) do
-    IO.inspect {esme, opts, message_ids}
+    if opts[:wait_dlrs] do
+      wait_dlrs(esme, message_ids, opts[:wait_dlrs])
+    end
+    {esme, opts}
+  end
+
+  defp wait_dlrs(_esme, [], _timeout), do: Logger.info("Dlrs for all sent messages received")
+  defp wait_dlrs(_esme, _message_ids, timeout) when timeout <= 0, do: error!(8, "Timeout while waiting for dlrs")
+  defp wait_dlrs(esme, message_ids, timeout) do
+    {t, res} = :timer.tc(fn() ->
+      ESME.wait_for_pdus(esme, timeout)
+    end)
+    case res do
+      :stop -> error!(8, "Esme stopped while waiting for dlrs")
+      :timeout -> error!(8, "Timeout while waiting for dlrs")
+      pdus -> handle_wait_dlr_results(esme, pdus, message_ids, timeout - div(t, 1000))
+    end
+  end
+
+  defp handle_wait_dlr_results(esme, [{:pdu, pdu} | rest_pdus], message_ids, timeout) do
+    Logger.info("Pdu received:#{PP.format pdu}")
+    command_name = Pdu.command_name(pdu)
+    if (command_name == :deliver_sm) do
+      handle_wait_dlr_results(esme, rest_pdus, message_ids -- [Pdu.field(pdu, :receipted_message_id)], timeout)
+    else
+      handle_wait_dlr_results(esme, rest_pdus, message_ids, timeout)
+    end
+  end
+  defp handle_wait_dlr_results(esme, [{:resp, pdu} | rest_pdus], message_ids, timeout) do
+    Logger.info("Pdu received:#{PP.format pdu}")
+    handle_wait_dlr_results(esme, rest_pdus, message_ids, timeout)
+  end
+  defp handle_wait_dlr_results(esme, [{:timeout, pdu} | rest_pdus], message_ids, timeout) do
+    Logger.info("Pdu timeout:#{PP.format pdu}")
+    handle_wait_dlr_results(esme, rest_pdus, message_ids, timeout)
+  end
+  defp handle_wait_dlr_results(esme, [{:error, pdu, error} | rest_pdus], message_ids, timeout) do
+    Logger.info("Pdu error(#{inspect error}):#{PP.format pdu}")
+    handle_wait_dlr_results(esme, rest_pdus, message_ids, timeout)
+  end
+  defp handle_wait_dlr_results(esme, [], message_ids, timeout) do
+    wait_dlrs(esme, message_ids, timeout)
+  end
+
+  defp wait({esme, opts}) do
+    if opts[:wait] do
+      wait_infinitely(esme)
+    end
+  end
+
+  defp wait_infinitely(esme) do
+    res = ESME.wait_for_pdus(esme)
+    case res do
+      :stop -> error!(9, "Esme stopped")
+      :timeout -> wait_infinitely(esme)
+      pdus -> handle_wait_results(esme, pdus)
+    end
+  end
+
+  defp handle_wait_results(esme, [{:resp, pdu} | rest_pdus]) do
+    Logger.info("Pdu received:#{PP.format pdu}")
+    handle_wait_results(esme, rest_pdus)
+  end
+  defp handle_wait_results(esme, [{:timeout, pdu} | rest_pdus]) do
+    Logger.info("Pdu timeout:#{PP.format pdu}")
+    handle_wait_results(esme, rest_pdus)
+  end
+  defp handle_wait_results(esme, [{:error, pdu, error} | rest_pdus]) do
+    Logger.info("Pdu error(#{inspect error}):#{PP.format pdu}")
+    handle_wait_results(esme, rest_pdus)
+  end
+  defp handle_wait_results(esme, []) do
+    wait_infinitely(esme)
   end
 
 end
