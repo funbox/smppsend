@@ -4,9 +4,11 @@ defmodule Smppsend do
   alias SMPPEX.Pdu
   alias SMPPEX.Pdu.Factory
   alias SMPPEX.Pdu.PP
+  alias SMPPEX.Protocol.CommandNames
 
   require Logger
   use Dye
+  use Bitwise
 
   @switches [
     bind_mode: :string,
@@ -39,19 +41,22 @@ defmodule Smppsend do
     sm_default_msg_id: :integer,
     short_message: :string,
 
-    auto_split: :boolean,
+    split_max_bytes: :integer,
 
     udh: :boolean,
     udh_ref: :integer,
     udh_total_parts: :integer,
     udh_part_num: :integer,
 
-    wait_dlr: :integer,
+    ucs2: :boolean,
+
+    wait_dlrs: :integer,
     wait: :boolean
   ]
 
   @defaults [
     bind_mode: "tx",
+    esm_class: 0,
     short_message: "",
     submit_sm: false,
 
@@ -61,6 +66,8 @@ defmodule Smppsend do
     udh_ref: 0,
     udh_total_parts: 1,
     udh_part_num: 1,
+
+    ucs2: false,
 
     wait: false
   ]
@@ -81,13 +88,11 @@ defmodule Smppsend do
     |> validate_unknown
     |> set_defaults
     |> validate_missing
+    |> convert_to_ucs2
     |> start_servers
     |> bind
-    #|> send_submit_sm
-    #|> wait_dlrs
-    #|> wait
-    # |> validate
-    # |> run
+    |> send_messages
+    |> wait_dlrs
   end
 
   defp parse(args) do
@@ -184,6 +189,42 @@ defmodule Smppsend do
     opts
   end
 
+  defp convert_to_ucs2(opts) do
+    if opts[:ucs2] do
+      short_message = try do
+        to_ucs2(opts[:short_message])
+      catch some, error ->
+        error!(7, "Failed to convert short_message to ucs2: #{inspect {some, error}}")
+      end
+
+      tlvs = opts[:tlvs]
+      {:ok, message_payload_id} = SMPPEX.Protocol.TlvFormat.id_by_name(:message_payload)
+      new_tlvs = if tlvs[message_payload_id] do
+        message_payload = try do
+          to_ucs2(tlvs[message_payload_id])
+        catch some, error ->
+          error!(7, "Failed to convert message_payload to ucs2: #{inspect {some, error}}")
+        end
+        :lists.keyreplace(message_payload_id, 1, tlvs, {message_payload_id, message_payload})
+      else
+        tlvs
+      end
+
+      opts
+        |> Keyword.put(:short_message, short_message)
+        |> Keyword.put(:tlvs, new_tlvs)
+    else
+      opts
+    end
+  end
+
+  defp to_ucs2(str) do
+    str
+      |> to_char_list
+      |> :xmerl_ucs.to_ucs2be
+      |> to_string
+  end
+
   defp start_servers(opts) do
     Application.start(:ranch, :permanent)
     opts
@@ -199,6 +240,12 @@ defmodule Smppsend do
     :address_range
   ]
 
+  defp fields_from_opts(field_list, opts) do
+    field_list |> List.foldl(%{}, fn(key, fields) ->
+      Map.put(fields, key, opts[key])
+    end)
+  end
+
   defp bind(opts) do
     host = opts[:host]
     port = opts[:port]
@@ -209,9 +256,7 @@ defmodule Smppsend do
 
     Logger.info "Connected"
 
-    bind_fields = @bind_field_names |> List.foldl(%{}, fn(key, fields) ->
-      Map.put(fields, key, opts[key])
-    end)
+    bind_fields = fields_from_opts(@bind_field_names, opts)
     bind = Factory.bind(bind_mode(opts[:bind_mode]), bind_fields)
 
     Logger.info "Binding:#{PP.format(bind)}"
@@ -229,6 +274,8 @@ defmodule Smppsend do
       :stop -> error!(3, "Bind failed, esme stopped")
       {:error, error} -> error!(3, "Bind failed, error: #{inspect error}")
     end
+
+    {esme, opts}
   end
 
   @bind_modes %{
@@ -245,6 +292,110 @@ defmodule Smppsend do
       true -> @bind_modes[mode]
       false -> error!(2, "Bad bind mode: #{inspect mode}, only following modes allowed: #{@bind_modes |> Map.keys |> Enum.join(", ")}")
     end
+  end
+
+  @submit_sm_fields [
+    :service_type,
+    :source_addr_ton,
+    :source_addr_npi,
+    :source_addr,
+    :dest_addr_ton,
+    :dest_addr_npi,
+    :destination_addr,
+    :protocol_id,
+    :priority_flag,
+    :schedule_delivery_time,
+    :validity_period,
+    :registered_delivery,
+    :replace_if_present_flag,
+    :data_coding,
+    :sm_default_msg_id
+  ]
+
+  @esm_class_gsm_udhi 0b01000000
+
+  defp send_messages({esme, opts}) do
+    message_ids = if opts[:submit_sm] do
+      submit_sm_fields = fields_from_opts(@submit_sm_fields, opts)
+
+      {esm_class, short_messages} = esm_class_and_messages(opts)
+
+      Logger.info "Sending #{length(short_messages)} message(s)"
+
+      {:ok, command_id} = CommandNames.id_by_name(:submit_sm)
+
+      short_messages |> Enum.map(fn(message) ->
+        mandatory = submit_sm_fields
+          |> Map.put(:short_message, message)
+          |> Map.put(:esm_class, esm_class)
+        optional = tlvs(opts[:tlvs])
+        submit_sm = Pdu.new(command_id, mandatory, optional)
+
+        Logger.info("Sending submit_sm#{PP.format(submit_sm)}")
+        case ESME.request(esme, submit_sm) do
+          {:ok, resp} ->
+            Logger.info("Got response#{PP.format(resp)}")
+            case Pdu.command_status(resp) do
+              0 -> Pdu.field(resp, :message_id)
+              status ->
+                error!(6, "Message submit failed, status: #{status}")
+            end
+          :timeout ->
+            error!(6, "Message submit failed, timeout")
+          :stop ->
+            error!(6, "Message submit failed, esme stopped")
+          {:error, reason} ->
+            error!(6, "Message submit failed, error: #{inspect reason}")
+        end
+      end)
+    else
+      []
+    end
+    {esme, opts, message_ids}
+  end
+
+  defp esm_class_and_messages(opts) do
+    if opts[:udh] && opts[:split_max_bytes] do
+      error!(4, "Options --udh and --split-max-bytes can't be used together")
+    end
+
+    split_max_bytes = opts[:split_max_bytes]
+
+    original_short_message = opts[:short_message]
+    original_esm_class = opts[:esm_class]
+    cond do
+      opts[:udh] ->
+        part_info = {
+          opts[:udh_ref],
+          opts[:udh_total_parts],
+          opts[:udh_part_num]
+        }
+        {:ok, data} = SMPPEX.Pdu.Multipart.prepend_message_with_part_info(part_info, original_short_message)
+        esm_class = original_esm_class ||| @esm_class_gsm_udhi
+        {esm_class, [data]}
+      split_max_bytes ->
+        case SMPPEX.Pdu.Multipart.split_message(opts[:udh_ref], original_short_message, split_max_bytes) do
+          {:ok, :split, messages} ->
+            esm_class = original_esm_class ||| @esm_class_gsm_udhi
+            {esm_class, messages}
+          {:ok, :unsplit} ->
+            {original_esm_class, [original_short_message]}
+          {:error, error} ->
+            error!(5, "Can't split message: #{inspect error}")
+        end
+      true ->
+        {original_esm_class, [original_short_message]}
+    end
+  end
+
+  defp tlvs(tlv_list) do
+    tlv_list |> List.foldl(%{}, fn({tlv_id, tlv_value}, tlv_map) ->
+      Map.put(tlv_map, tlv_id, tlv_value)
+    end)
+  end
+
+  defp wait_dlrs({esme, opts, message_ids}) do
+    IO.inspect {esme, opts, message_ids}
   end
 
 end
