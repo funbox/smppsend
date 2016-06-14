@@ -450,6 +450,8 @@ defmodule Smppsend do
   end
 
   defp wait_infinitely(esme) do
+    Logger.info("Waiting...")
+
     res = ESME.wait_for_pdus(esme)
     case res do
       :stop -> error!(9, "Esme stopped")
