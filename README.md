@@ -1,19 +1,8 @@
-# Smppsend
+# SMPPSend
 
-**TODO: Add description**
+Simple utility for testing SMSC connections. It allows to bind to SMSCs, send submit_sm PDUs and wait for delivery reports.
 
-## Installation
+See
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed as:
+    smppsend --help
 
-  1. Add smppsend to your list of dependencies in `mix.exs`:
-
-        def deps do
-          [{:smppsend, "~> 0.0.1"}]
-        end
-
-  2. Ensure smppsend is started before your application:
-
-        def application do
-          [applications: [:smppsend]]
-        end
