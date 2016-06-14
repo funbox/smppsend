@@ -1,3 +1,3 @@
 %{"dye": {:hex, :dye, "0.4.0", "0cf2b80b3e8b1f95acd28e3187d874527bb4799134d20ab42bcfef094f85c94b", [:mix], []},
   "ranch": {:hex, :ranch, "1.2.1", "a6fb992c10f2187b46ffd17ce398ddf8a54f691b81768f9ef5f461ea7e28c762", [:make], []},
-  "smppex": {:git, "https://github.com/savonarola/smppex.git", "df8ba204903231c1a9642fae595c6b3f0593e830", []}}
+  "smppex": {:hex, :smppex, "0.0.1", "53605c0f60b2e4066f9bf72dc9b7c5aca2bbef48d7caf58cde3befc3fabc67c9", [:mix], [{:dye, "~> 0.4.0", [hex: :dye, optional: false]}, {:ranch, "~> 1.2", [hex: :ranch, optional: false]}]}}

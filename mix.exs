@@ -19,12 +19,12 @@ defmodule Smppsend.Mixfile do
 
   defp deps do
     [
-      {:smppex, git: "https://github.com/savonarola/smppex.git", only: :dev},
-      {:dye, "~> 0.4.0", only: :dev}
+      {:smppex, "~> 0.0.1"},
+      {:dye, "~> 0.4.0"}
     ]
   end
 
   def escript do
-    [main_module: Smppsend]
+    [main_module: SMPPSend]
   end
 end
