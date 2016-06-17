@@ -1,21 +1,27 @@
 MIX=mix
+SMPPSEND_BIN=smppsend
 
-all: clean escript
+VERSIONS=1.1.1 1.2.5
 
-escript: folder deps
+all: clean_bin $(VERSIONS) release
+
+clean_bin:
+	rm -rf bin
+
+release:
+	tar czf bin.tar.gz bin
+
+escript: clean dependencies
 	$(MIX) escript.build
-	mv smppsend $(BUILD_TO)
+	mv smppsend $(SMPPSEND_BIN)
 
-folder:
-	mkdir -p $(BUILD_TO)
-
-deps: hex
+dependencies:
 	$(MIX) deps.get
 	$(MIX) deps.compile
-
-hex:
-	$(MIX) local.hex --force
 
 clean:
 	$(MIX) deps.clean --all
 	$(MIX) clean
+
+$(VERSIONS): %:
+	./build.sh $@
