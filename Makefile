@@ -9,7 +9,7 @@ clean_bin:
 	rm -rf bin
 
 release:
-	tar czf bin.tar.gz bin
+	tar czf bin-$(VERSION).tar.gz bin
 
 escript: clean dependencies
 	$(MIX) escript.build
