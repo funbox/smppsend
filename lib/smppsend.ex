@@ -83,78 +83,6 @@ defmodule SMPPSend do
     :submit_sm
   ]
 
-  @help "
-Usage: #{~s/smppsend/DCd} #{~s/OPTIONS/gd}
-
-Available options are:
-
-  #{~s/--help/gd} #{~s//yd}                               Show this help
-
-  #{~s/--bind-mode/gd} #{~s/mode/yd}                      Bind mode, one of the following: #{~s/tx/yd}(transmitter), #{~s/rx/yd}(receiver), #{~s/trx/yd}(transceiver)
-
-  #{~s/--host/gd} #{~s/host/yd}                           SMSC host
-  #{~s/--port/gd} #{~s/port/yd}                           SMSC port
-
-  #{~s/--submit-sm/gd} #{~s//yd}                          Send submit_sm PDU after bind
-
-  #{~s/--split-max-bytes/gd} #{~s/len/yd}                 Split short_message and send resulting parts with several submit_sm PDUs, so that each submit_sm's short_message size(including UDHs) does not exceed #{~s/len/yd} bytes. Each short_messages is automatically prepended with UDHs with ref taken from #{~s/--udh-ref/gd} option
-
-  #{~s/--udh/gd} #{~s//yd}                                Prepend short_message with UDH. This option is incompatible with #{~s/--split-max-bytes/gd} option
-
-  #{~s/--ucs2/gd} #{~s//yd}                               Convert short_message field and message_payload TLV from UTF8 to UCS2 before sending submit_sm PDUs
-
-  #{~s/--wait-dlrs/gd} #{~s/timeout/yd}                   Wait for for delivery reports for all sent submit_sm PDUs or exit with failure after #{~s/timeout/yd} ms
-
-  #{~s/--wait/gd} #{~s//yd}                               Do not exit after sending submit_sm PDUs (and waiting for delivery reports if specified), but receive and display incoming PDUs infinitely
-
-UDH fields (3GPP TS 23.040):
-
-  #{~s/--udh-ref/gd} #{~s/ref/yd}
-  #{~s/--udh-total-parts/gd} #{~s/parts/yd}
-  #{~s/--udh-part-num/gd} #{~s/part_num/yd}
-
-Bind PDU fields (SMPP 3.4):
-
-  #{~s/--system-id/gd} #{~s/system_id/yd}
-  #{~s/--password/gd} #{~s/password/yd}
-  #{~s/--system-type/gd} #{~s/system_type/yd}
-  #{~s/--interface-version/gd} #{~s/iv/yd}
-  #{~s/--addr-ton/gd} #{~s/ton/yd}
-  #{~s/--addr-npi/gd} #{~s/npi/yd}
-  #{~s/--address-range/gd} #{~s/range/yd}
-
-Submit_sm PDU fields (SMPP 3.4):
-
-  #{~s/--service-type/gd} #{~s/service_type/yd}
-  #{~s/--source-addr-ton/gd} #{~s/ton/yd}
-  #{~s/--source-addr-npi/gd} #{~s/npi/yd}
-  #{~s/--source-addr/gd} #{~s/addr/yd}
-  #{~s/--dest-addr-ton/gd} #{~s/ton/yd}
-  #{~s/--dest-addr-npi/gd} #{~s/npi/yd}
-  #{~s/--destination-addr/gd} #{~s/addr/yd}
-  #{~s/--esm-class/gd} #{~s/esm_class/yd}
-  #{~s/--protocol-id/gd} #{~s/protocol_id/yd}
-  #{~s/--priority-flag/gd} #{~s/priority_flag/yd}
-  #{~s/--schedule-delivery-time/gd} #{~s/schedule_delivery_time/yd}
-  #{~s/--validity-period/gd} #{~s/validity_period/yd}
-  #{~s/--registered-delivery/gd} #{~s/registered_delivery/yd}
-  #{~s/--replace-if-present-flag/gd} #{~s/flag/yd}
-  #{~s/--data-coding/gd} #{~s/coding/yd}
-  #{~s/--sm-default-msg-id/gd} #{~s/msg_id/yd}
-  #{~s/--short-message/gd} #{~s/short_message/yd}
-
-  #{~s/--tlv-TLV_ID-TYPE_SPEC/gd} #{~s/value/yd}          Add TLV fields to submit_sm PDUs. #{~s/TLV_ID/gd} can be specified as a hex value(#{~s/0x0424/yd}) or as TLV's name(#{~s/message-payload/yd}). #{~s/TYPE_SPEC/gd} specifies value format: UTF8 encoded string(#{~s/s/yd}), hex encoded string(#{~s/h/yd}) or integer(#{~s/i1/yd}, #{~s/i2/yd}, #{~s/i4/yd} or #{~s/i8/yd} for 8, 16, 32 and 64 unsigned integers). Integer values are encoded in big endian format.
-
-TLV specification examples:
-
-  #{~s/--tlv-0x0424-s/gd} #{~s/"Hello world!"/yd}
-  #{~s/--tlv-message-payload-h/gd} #{~s/48656C6C6F20776F726C6421/yd}
-  #{~s/--tlv-0x0304-i1/gd} #{~s/1/yd}
-
-Example:
-
-  #{~s/smppsend/DCd} #{~s/--host/gd} #{~s/localhost/yd} #{~s/--port/gd} #{~s/15000/yd} #{~s/--system-id/gd} #{~s/bm0/yd} #{~s/--password/gd} #{~s/pass/yd} #{~s/--bind-mode/gd} #{~s/trx/yd} #{~s/--submit-sm/gd} #{~s/--source-addr/gd} #{~s/from123/yd} #{~s/--source-addr-npi/gd} #{~s/1/yd} #{~s/--source-addr-ton/gd} #{~s/5/yd} #{~s/--destination-addr/gd} #{~s/79265303949/yd} #{~s/--dest-addr-npi/gd} #{~s/1/yd} #{~s/--dest-addr-ton/gd} #{~s/1/yd} #{~s/--short-message/gd}  #{~s/HelloHelloHelloHelloHelloHelloHelloHelloHello/yd} #{~s/--data-coding/gd} #{~s/8/yd} #{~s/--split-max-bytes/gd} #{~s/30/yd} #{~s/--udh-ref/gd} #{~s/123/yd} #{~s/--ucs2/gd} #{~s/--registered-delivery/gd} #{~s/1/yd} #{~s/--wait-dlrs/gd} #{~s/30000/yd} #{~s/--wait/gd}
-"
   def main(args) do
     args
     |> parse
@@ -234,7 +162,7 @@ Example:
 
   defp show_help(opts) do
     if opts[:help] do
-      IO.puts(@help)
+      IO.puts(SMPPSend.Usage.help)
       System.halt(0)
     end
     opts
