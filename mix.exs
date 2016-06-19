@@ -22,7 +22,8 @@ defmodule Smppsend.Mixfile do
     [
       {:smppex, "~> 0.0.1"},
       {:dye, "~> 0.4.0"},
-      {:coverex, "~> 1.4.1", only: :test}
+      {:coverex, "~> 1.4.1", only: :test},
+      {:doppler, git: "https://github.com/funbox/doppler.git", only: :test}
     ]
   end
 

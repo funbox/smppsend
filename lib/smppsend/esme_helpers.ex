@@ -26,7 +26,7 @@ defmodule SMPPSend.ESMEHelpers do
           0 ->
             Logger.info("Bound successfully")
             {:ok, esme}
-          status -> {:errrr, "bind failed, status: #{status}"}
+          status -> {:error, "bind failed, status: #{status}"}
         end
       :timeout -> {:error, "bind failed, timeout"}
       :stop -> {:error, "bind failed, esme stopped"}
