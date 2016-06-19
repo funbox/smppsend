@@ -130,34 +130,21 @@ defmodule SMPPSend do
   end
 
   defp validate_unknown(opts) do
-    unknown = opts |> Keyword.keys |> Enum.filter(fn(key) ->
-      not Keyword.has_key?(@switches, key) and not (key == :tlvs)
-    end)
-
-    if length(unknown) > 0 do
-      error!(1, "Unrecognized options: #{unknown |> Enum.map(&original_key/1) |> Enum.map(&inspect/1) |> Enum.join(", ")}")
+    case SMPPSend.OptionHelpers.find(opts, [:tlvs | @switches > Keyword.keys]) do
+      [] -> opts
+      unknown -> error!(1, "Unrecognized options: #{unknown |> Enum.map(&original_key/1) |> Enum.map(&inspect/1) |> Enum.join(", ")}")
     end
-
-    opts
   end
 
   defp set_defaults(opts) do
-    @defaults |> Keyword.keys |> List.foldl(opts, fn(key, opts) ->
-      case Keyword.has_key?(opts, key) do
-        true -> opts
-        false -> Keyword.put(opts, key, @defaults[key])
-      end
-    end)
+    SMPPSend.OptionHelpers.set_defaults(opts, @defaults)
   end
 
   defp validate_missing(opts) do
-    missing = @required |> Enum.filter(fn(name) -> not Keyword.has_key?(opts, name) end)
-
-    if length(missing) > 0 do
-      error!(1, "Missing options: #{missing |> Enum.map(&original_key/1) |> Enum.map(&inspect/1) |> Enum.join(", ")}")
+    case SMPPSend.OptionHelpers.find_missing(opts, @required) do
+      [] -> opts
+      missing -> error!(1, "Missing options: #{missing |> Enum.map(&original_key/1) |> Enum.map(&inspect/1) |> Enum.join(", ")}")
     end
-
-    opts
   end
 
   defp show_help(opts) do
@@ -169,39 +156,16 @@ defmodule SMPPSend do
   end
 
   defp convert_to_ucs2(opts) do
-    if opts[:ucs2] do
-      short_message = try do
-        to_ucs2(opts[:short_message])
-      catch some, error ->
-        error!(7, "Failed to convert short_message to ucs2: #{inspect {some, error}}")
-      end
-
-      tlvs = opts[:tlvs]
-      {:ok, message_payload_id} = SMPPEX.Protocol.TlvFormat.id_by_name(:message_payload)
-      new_tlvs = if tlvs[message_payload_id] do
-        message_payload = try do
-          to_ucs2(tlvs[message_payload_id])
-        catch some, error ->
-          error!(7, "Failed to convert message_payload to ucs2: #{inspect {some, error}}")
+    case SMPPSend.OptionHelpers.convert_to_ucs2(opts, :short_message) do
+      {:ok, new_opts} ->
+        tlvs = opts[:tlvs]
+        {:ok, message_payload_id} = SMPPEX.Protocol.TlvFormat.id_by_name(:message_payload)
+        case SMPPSend.OptionHelpers.convert_to_ucs2(tlvs, message_payload_id) do
+          {:ok, new_tlvs} -> Keyword.put(new_opts, :tlvs, new_tlvs)
+          {:error, error} -> error!(7, "Failed to convert message_payload to ucs2: #{error}")
         end
-        :lists.keyreplace(message_payload_id, 1, tlvs, {message_payload_id, message_payload})
-      else
-        tlvs
-      end
-
-      opts
-        |> Keyword.put(:short_message, short_message)
-        |> Keyword.put(:tlvs, new_tlvs)
-    else
-      opts
+      {:error, error} -> error!(7, "Failed to convert short_message to ucs2: #{error}")
     end
-  end
-
-  defp to_ucs2(str) do
-    str
-      |> to_char_list
-      |> :xmerl_ucs.to_ucs2be
-      |> to_string
   end
 
   defp start_servers(opts) do
