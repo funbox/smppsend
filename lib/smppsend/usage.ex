@@ -61,13 +61,13 @@ Submit_sm PDU fields (SMPP 3.4):
   --sm-default-msg-id y<msg_id>
   --short-message y<short_message>
 
-  --tlv-TLV_ID-TYPE_SPEC y<value>          Add TLV fields to submit_sm PDUs. g<TLV_ID> can be specified as a hex value(y<0x0424>) or as TLV's name(y<message-payload>). g<TYPE_SPEC> specifies value format: UTF8 encoded string(y<s>), hex encoded string(y<h>) or integer(y<i1>, y<i2>, y<i4> or y<i8> for 8, 16, 32 and 64 unsigned integers). Integer values are encoded in big endian format.
+  --tlv-TLV_ID-TYPE_SPEC y<value>          Add TLV fields to submit_sm PDUs. g<TLV_ID> can be specified as a hex value(y<x0424>) or as TLV's name(y<message-payload>). g<TYPE_SPEC> specifies value format: UTF8 encoded string(y<s>), hex encoded string(y<h>) or integer(y<i1>, y<i2>, y<i4> or y<i8> for 8, 16, 32 and 64 unsigned integers). Integer values are encoded in big endian format.
 
 TLV specification examples:
 
-  --tlv-0x0424-s y<\"Hello world!\">
+  --tlv-x0424-s y<\"Hello world!\">
   --tlv-message-payload-h y<48656C6C6F20776F726C6421>
-  --tlv-0x0304-i1 y<1>
+  --tlv-x0304-i1 y<1>
 
 Example:
 

@@ -9,7 +9,8 @@ defmodule Smppsend.Mixfile do
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
       deps: deps,
-      escript: escript
+      escript: escript,
+      test_coverage: [tool: Coverex.Task]
     ]
   end
 
@@ -20,7 +21,8 @@ defmodule Smppsend.Mixfile do
   defp deps do
     [
       {:smppex, "~> 0.0.1"},
-      {:dye, "~> 0.4.0"}
+      {:dye, "~> 0.4.0"},
+      {:coverex, "~> 1.4.1", only: :test}
     ]
   end
 
