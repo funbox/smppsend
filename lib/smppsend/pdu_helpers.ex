@@ -95,9 +95,12 @@ defmodule SMPPSend.PduHelpers do
       opts[:udh_total_parts],
       opts[:udh_part_num]
     }
-    {:ok, data} = SMPPEX.Pdu.Multipart.prepend_message_with_part_info(part_info, original_short_message)
-    esm_class = original_esm_class ||| @esm_class_gsm_udhi
-    {:ok, {esm_class, [data]}}
+    case SMPPEX.Pdu.Multipart.prepend_message_with_part_info(part_info, original_short_message) do
+      {:ok, data} ->
+        esm_class = original_esm_class ||| @esm_class_gsm_udhi
+        {:ok, {esm_class, [data]}}
+      {:error, _} = error -> error
+    end
   end
 
   defp esm_class_and_messages(opts, :auto_split) do
@@ -115,6 +118,7 @@ defmodule SMPPSend.PduHelpers do
     end
   end
 
+  defp tlvs(nil), do: tlvs([])
   defp tlvs(tlv_list) do
     tlv_list |> List.foldl(%{}, fn({tlv_id, tlv_value}, tlv_map) ->
       Map.put(tlv_map, tlv_id, tlv_value)

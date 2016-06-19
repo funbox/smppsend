@@ -100,13 +100,29 @@ defmodule SMPPSend do
     {parsed, remaining, invalid} = OptionParser.parse(args, switches: @switches)
 
     if length(invalid) > 0 do
-      error!(1, "Invalid options: #{invalid |> Keyword.keys |> Enum.map(&inspect/1) |> Enum.join(", ")}")
+      error!(1, "Invalid options: #{format_keys(invalid)}")
     end
     if length(remaining) > 0 do
-      error!(1, "Redundant command line arguments: #{remaining |> Enum.map(&inspect/1) |> Enum.join(", ")}")
+      error!(1, "Redundant command line arguments: #{format_keys(remaining)}")
     end
 
     parsed
+  end
+
+  defp format_keys(keys) when not is_list(keys), do: format_keys([keys])
+  defp format_keys(keys) do
+    keys |> Enum.map(&original_key/1) |> Enum.map(&inspect/1) |> Enum.join(", ")
+  end
+
+  defp original_key({key, _}), do: to_string(key)
+  defp original_key(key) when is_binary(key), do: key
+  defp original_key(key) do
+   key_s = to_string(key)
+   prefix = case String.starts_with?(key_s, "--") do
+     true -> ""
+     false -> "--"
+    end
+    prefix <> Regex.replace(~r/_/, key_s, "-")
   end
 
   defp error!(code, desc) do
@@ -118,18 +134,14 @@ defmodule SMPPSend do
     case SMPPSend.TlvParser.convert_tlvs(opts) do
       {:ok, opts} -> opts
       {:error, message, key} ->
-        error!(1, "Error parsing tlv option #{key |> original_key}: #{message}")
+        error!(1, "Error parsing tlv option #{format_keys(key)}: #{message}")
     end
-  end
-
-  defp original_key(key) do
-    "--" <> Regex.replace(~r/_/, to_string(key), "-")
   end
 
   defp validate_unknown(opts) do
     case SMPPSend.OptionHelpers.find_unknown(opts, [:tlvs | @switches |> Keyword.keys]) do
       [] -> opts
-      unknown -> error!(1, "Unrecognized options: #{unknown |> Enum.map(&original_key/1) |> Enum.map(&inspect/1) |> Enum.join(", ")}")
+      unknown -> error!(1, "Unrecognized options: #{format_keys(unknown)}")
     end
   end
 
@@ -140,7 +152,7 @@ defmodule SMPPSend do
   defp validate_missing(opts) do
     case SMPPSend.OptionHelpers.find_missing(opts, @required) do
       [] -> opts
-      missing -> error!(1, "Missing options: #{missing |> Enum.map(&original_key/1) |> Enum.map(&inspect/1) |> Enum.join(", ")}")
+      missing -> error!(1, "Missing options: #{format_keys(missing)}")
     end
   end
 
