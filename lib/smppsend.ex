@@ -186,31 +186,12 @@ defmodule SMPPSend do
     host = opts[:host]
     port = opts[:port]
 
-    Logger.info "Connecting to #{host}:#{port}"
-
-    {:ok, esme} = ESME.start_link(host, port)
-
-    Logger.info "Connected"
-
     case SMPPSend.PduHelpers.bind(opts) do
       {:ok, bind} ->
-        Logger.info "Binding:#{PP.format(bind)}"
-        response = ESME.request(esme, bind)
-        case response do
-          {:ok, pdu} ->
-            Logger.info("Bind response:#{PP.format(pdu)}")
-            case Pdu.command_status(pdu) do
-              0 ->
-                Logger.info("Bound successfully")
-                {esme, opts}
-              status -> error!(3, "Bind failed, status: #{status}")
-            end
-          :timeout -> error!(3, "Bind failed, timeout")
-          :stop -> error!(3, "Bind failed, esme stopped")
-          {:error, error} -> error!(3, "Bind failed, error: #{inspect error}")
+        case SMPPSend.ESMEHelpers.connect(host, port, bind) do
+          {:ok, esme} -> {esme, opts}
+          {:error, error} -> error!(3, "Connecting SMSC failed: #{inspect error}")
         end
-
-        {esme, opts}
       {:error, error} -> error!(3, error)
     end
   end
