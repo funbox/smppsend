@@ -2,6 +2,7 @@ defmodule SMPPSend.ESMEHelpersTest do
   use ExUnit.Case
 
   alias :doppler, as: Doppler
+  alias :timer, as: Timer
   alias SMPPEX.Pdu.Factory
   alias SMPPSend.ESMEHelpers
 
@@ -161,4 +162,58 @@ defmodule SMPPSend.ESMEHelpersTest do
 
   end
 
+  test "wait_dlrs: empty" do
+
+    assert :ok == ESMEHelpers.wait_dlrs(:esme, [], 10)
+
+  end
+
+  test "wait_dlrs: success" do
+
+    message_ids = ["1", "2"]
+
+    esme_mod = Doppler.start(message_ids)
+
+    Doppler.def(esme_mod, :wait_for_pdus, fn([message_id | rest_message_ids], :esme, _timeout) ->
+      dlr = Factory.delivery_report(message_id, {"from", 1, 1}, {"to", 1, 1})
+      {[{:pdu, dlr}], rest_message_ids}
+    end)
+
+    assert :ok = ESMEHelpers.wait_dlrs(:esme, message_ids, 10, esme_mod)
+
+  end
+
+  test "wait_dlrs: timeout" do
+
+    message_ids = [{"1", 10}, {"2", 10}]
+
+    esme_mod = Doppler.start(message_ids)
+
+    Doppler.def(esme_mod, :wait_for_pdus, fn([{message_id, time_to_sleep} | rest_message_ids], :esme, _timeout) ->
+      dlr = Factory.delivery_report(message_id, {"from", 1, 1}, {"to", 1, 1})
+      Timer.sleep(time_to_sleep)
+      {[{:pdu, dlr}], rest_message_ids}
+    end)
+
+    assert {:error, _} = ESMEHelpers.wait_dlrs(:esme, message_ids, 15, esme_mod)
+
+  end
+
+  test "wait_dlrs: mixed wait results" do
+
+    message_ids = ["1", "2"]
+
+    esme_mod = Doppler.start(message_ids)
+
+    Doppler.def(esme_mod, :wait_for_pdus, fn([message_id | rest_message_ids], :esme, _timeout) ->
+      dlr = {:pdu, Factory.delivery_report(message_id, {"from", 1, 1}, {"to", 1, 1})}
+      resp = {:resp, Factory.enquire_link_resp}
+      error = {:error, Factory.enquire_link, "oops"}
+      timeout = {:timeout, Factory.enquire_link}
+      {[resp, error, timeout, dlr], rest_message_ids}
+    end)
+
+    assert :ok = ESMEHelpers.wait_dlrs(:esme, message_ids, 10, esme_mod)
+
+  end
 end

@@ -57,7 +57,7 @@ defmodule SMPPSend.ESMEHelpers do
   end
 
 
-  def wait_dlrs(esme, message_ids, timeout, esme_mod \\ SMPPEX.ESME.Sync)
+  def wait_dlrs(_esme, _message_ids, _timeout, _esme_mod \\ SMPPEX.ESME.Sync)
 
   def wait_dlrs(_esme, [], _timeout, _esme_mod), do: :ok
   def wait_dlrs(_esme, _message_ids, timeout, _esme_mod) when timeout <= 0, do: {:error, "timeout"}
