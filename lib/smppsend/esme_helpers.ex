@@ -34,4 +34,26 @@ defmodule SMPPSend.ESMEHelpers do
     end
   end
 
+
+  def send_messages(_esme, _submit_sms, _esme_mod \\ SMPPEX.ESME.Sync, _message_ids \\ [])
+
+  def send_messages(_esme, [], _esme_mod, message_ids), do: {:ok, Enum.reverse(message_ids)}
+
+  def send_messages(esme, [submit_sm | submit_sms], esme_mod, message_ids) do
+    Logger.info("Sending submit_sm#{PP.format(submit_sm)}")
+    case ESME.request(esme, submit_sm) do
+      {:ok, resp} ->
+        Logger.info("Got response#{PP.format(resp)}")
+        case Pdu.command_status(resp) do
+          0 -> send_messages(esme, submit_sms, esme_mod, [Pdu.field(resp, :message_id) | message_ids])
+          status ->
+            {:error, "message status: #{status}"}
+        end
+      :timeout -> {:error, "timeout"}
+      :stop -> {:error, "esme stopped"}
+      {:error, reason} -> {:error, "error: #{inspect reason}"}
+    end
+
+  end
+
 end

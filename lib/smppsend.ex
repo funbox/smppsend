@@ -210,24 +210,10 @@ defmodule SMPPSend do
 
       case submit_sms do
         {:ok, pdus} ->
-          pdus |> Enum.map(fn(submit_sm) ->
-            Logger.info("Sending submit_sm#{PP.format(submit_sm)}")
-            case ESME.request(esme, submit_sm) do
-              {:ok, resp} ->
-                Logger.info("Got response#{PP.format(resp)}")
-                case Pdu.command_status(resp) do
-                  0 -> Pdu.field(resp, :message_id)
-                  status ->
-                    error!(6, "Message submit failed, status: #{status}")
-                end
-              :timeout ->
-                error!(6, "Message submit failed, timeout")
-              :stop ->
-                error!(6, "Message submit failed, esme stopped")
-              {:error, reason} ->
-                error!(6, "Message submit failed, error: #{inspect reason}")
-            end
-          end)
+          case SMPPSend.PduHelpers.send_messages(esme, pdus) do
+            {:ok, message_ids} -> message_ids
+            {:error, error} -> error!(6, "Message submit failed, #{error}")
+          end
         {:error, error} -> error!(4, error)
       end
     else
