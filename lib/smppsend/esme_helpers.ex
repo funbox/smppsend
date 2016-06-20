@@ -98,4 +98,32 @@ defmodule SMPPSend.ESMEHelpers do
     wait_dlrs(esme, message_ids, timeout, esme_mod)
   end
 
+
+  def wait_infinitely(esme, esme_mod \\ SMPPEX.ESME.Sync)
+  def wait_infinitely(esme, esme_mod) do
+    Logger.info("Waiting...")
+
+    case esme_mod.wait_for_pdus(esme) do
+      :stop -> {:error, "esme stopped"}
+      :timeout -> wait_infinitely(esme, esme_mod)
+      wait_result -> handle_wait_results(esme, esme_mod, wait_result)
+    end
+  end
+
+  defp handle_wait_results(esme, esme_mod, [{:resp, pdu} | rest_pdus]) do
+    Logger.info("Pdu received:#{PP.format pdu}")
+    handle_wait_results(esme, esme_mod, rest_pdus)
+  end
+  defp handle_wait_results(esme, esme_mod, [{:timeout, pdu} | rest_pdus]) do
+    Logger.info("Pdu timeout:#{PP.format pdu}")
+    handle_wait_results(esme, esme_mod, rest_pdus)
+  end
+  defp handle_wait_results(esme, esme_mod, [{:error, pdu, error} | rest_pdus]) do
+    Logger.info("Pdu error(#{inspect error}):#{PP.format pdu}")
+    handle_wait_results(esme, esme_mod, rest_pdus)
+  end
+  defp handle_wait_results(esme, esme_mod, []) do
+    wait_infinitely(esme, esme_mod)
+  end
+
 end

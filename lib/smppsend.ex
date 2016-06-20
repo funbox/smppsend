@@ -1,8 +1,5 @@
 defmodule SMPPSend do
 
-  alias SMPPEX.ESME.Sync, as: ESME
-  alias SMPPEX.Pdu.PP
-
   require Logger
   use Dye
 
@@ -234,35 +231,8 @@ defmodule SMPPSend do
 
   defp wait({esme, opts}) do
     if opts[:wait] do
-      wait_infinitely(esme)
+      SMPPSend.ESMEHelpers.wait_infinitely(esme)
     end
-  end
-
-  defp wait_infinitely(esme) do
-    Logger.info("Waiting...")
-
-    res = ESME.wait_for_pdus(esme)
-    case res do
-      :stop -> error!(9, "Esme stopped")
-      :timeout -> wait_infinitely(esme)
-      pdus -> handle_wait_results(esme, pdus)
-    end
-  end
-
-  defp handle_wait_results(esme, [{:resp, pdu} | rest_pdus]) do
-    Logger.info("Pdu received:#{PP.format pdu}")
-    handle_wait_results(esme, rest_pdus)
-  end
-  defp handle_wait_results(esme, [{:timeout, pdu} | rest_pdus]) do
-    Logger.info("Pdu timeout:#{PP.format pdu}")
-    handle_wait_results(esme, rest_pdus)
-  end
-  defp handle_wait_results(esme, [{:error, pdu, error} | rest_pdus]) do
-    Logger.info("Pdu error(#{inspect error}):#{PP.format pdu}")
-    handle_wait_results(esme, rest_pdus)
-  end
-  defp handle_wait_results(esme, []) do
-    wait_infinitely(esme)
   end
 
 end
