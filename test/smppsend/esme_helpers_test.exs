@@ -101,7 +101,7 @@ defmodule SMPPSend.ESMEHelpersTest do
     Doppler.def(esme_mod, :start_link, fn(ref, _, _) ->
       {{:ok, {:esme, ref}}, ref}
     end)
-    Doppler.def(esme_mod, :request, fn(ref, {:esme, esme_ref}, _) ->
+    Doppler.def(esme_mod, :request, fn(ref, _, _) ->
       {{:error, "err"}, ref}
     end)
 
@@ -121,11 +121,43 @@ defmodule SMPPSend.ESMEHelpersTest do
     Doppler.def(esme_mod, :start_link, fn(ref, _, _) ->
       {{:ok, {:esme, ref}}, ref}
     end)
-    Doppler.def(esme_mod, :request, fn(ref, {:esme, esme_ref}, _) ->
+    Doppler.def(esme_mod, :request, fn(ref, _, _) ->
       {:stop, ref}
     end)
 
     assert {:error, _} = ESMEHelpers.connect(host, port, bind_pdu, esme_mod)
+
+  end
+
+  test "send_messages" do
+
+    esme_mod = Doppler.start(["1", "2"])
+
+    submit_sm1 = Factory.submit_sm({"from", 1, 1}, {"to", 1, 1}, "hello1")
+    submit_sm2 = Factory.submit_sm({"from", 1, 1}, {"to", 1, 1}, "hello2")
+
+    Doppler.def(esme_mod, :request, fn([message_id | message_ids], :esme, _submit_sm) ->
+      resp = Factory.submit_sm_resp(0, message_id)
+      {{:ok, resp}, message_ids}
+    end)
+
+    assert {:ok, ["1", "2"]} == ESMEHelpers.send_messages(:esme, [submit_sm1, submit_sm2], esme_mod)
+
+  end
+
+  test "send_messages: fail" do
+
+    esme_mod = Doppler.start([{"1",0}, {"2",1}])
+
+    submit_sm1 = Factory.submit_sm({"from", 1, 1}, {"to", 1, 1}, "hello1")
+    submit_sm2 = Factory.submit_sm({"from", 1, 1}, {"to", 1, 1}, "hello2")
+
+    Doppler.def(esme_mod, :request, fn([{message_id, command_status} | message_ids], :esme, _submit_sm) ->
+      resp = Factory.submit_sm_resp(command_status, message_id)
+      {{:ok, resp}, message_ids}
+    end)
+
+    assert {:error, _} = ESMEHelpers.send_messages(:esme, [submit_sm1, submit_sm2], esme_mod)
 
   end
 

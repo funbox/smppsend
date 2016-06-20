@@ -1,6 +1,7 @@
 defmodule SMPPSend.ESMEHelpers do
   alias SMPPEX.Pdu
   alias SMPPEX.Pdu.PP
+  alias :timer, as: Timer
 
   require Logger
 
@@ -53,7 +54,48 @@ defmodule SMPPSend.ESMEHelpers do
       :stop -> {:error, "esme stopped"}
       {:error, reason} -> {:error, "error: #{inspect reason}"}
     end
+  end
 
+
+  def wait_dlrs(esme, message_ids, timeout, esme_mod \\ SMPPEX.ESME.Sync)
+
+  def wait_dlrs(_esme, [], _timeout, _esme_mod), do: :ok
+  def wait_dlrs(_esme, _message_ids, timeout, _esme_mod) when timeout <= 0, do: {:error, "timeout"}
+  def wait_dlrs(esme, message_ids, timeout, esme_mod) do
+    case wait_for_pdus(esme, esme_mod, timeout) do
+      {_, :stop} -> {:error, "ESME stopped while waiting for dlrs"}
+      {_, :timeout} -> {:error, "timeout while waiting for dlrs"}
+      {time, pdus} -> handle_wait_dlr_results(esme, esme_mod, pdus, message_ids, timeout - div(time, 1000))
+    end
+  end
+
+  defp wait_for_pdus(esme, esme_mod, timeout) do
+    Timer.tc(fn() ->
+      esme_mod.wait_for_pdus(esme, timeout)
+    end)
+  end
+
+  defp handle_wait_dlr_results(esme, esme_mod, [{:pdu, pdu} | rest_pdus], message_ids, timeout) do
+    Logger.info("Pdu received:#{PP.format pdu}")
+    case Pdu.command_name(pdu) do
+      :deliver_sm -> handle_wait_dlr_results(esme, esme_mod, rest_pdus, message_ids -- [Pdu.field(pdu, :receipted_message_id)], timeout)
+      _ -> handle_wait_dlr_results(esme, esme_mod, rest_pdus, message_ids, timeout)
+    end
+  end
+  defp handle_wait_dlr_results(esme, esme_mod, [{:resp, pdu} | rest_pdus], message_ids, timeout) do
+    Logger.info("Pdu received:#{PP.format pdu}")
+    handle_wait_dlr_results(esme, esme_mod, rest_pdus, message_ids, timeout)
+  end
+  defp handle_wait_dlr_results(esme, esme_mod, [{:timeout, pdu} | rest_pdus], message_ids, timeout) do
+    Logger.info("Pdu timeout:#{PP.format pdu}")
+    handle_wait_dlr_results(esme, esme_mod, rest_pdus, message_ids, timeout)
+  end
+  defp handle_wait_dlr_results(esme, esme_mod, [{:error, pdu, error} | rest_pdus], message_ids, timeout) do
+    Logger.info("Pdu error(#{inspect error}):#{PP.format pdu}")
+    handle_wait_dlr_results(esme, esme_mod, rest_pdus, message_ids, timeout)
+  end
+  defp handle_wait_dlr_results(esme, esme_mod, [], message_ids, timeout) do
+    wait_dlrs(esme, message_ids, timeout, esme_mod)
   end
 
 end
