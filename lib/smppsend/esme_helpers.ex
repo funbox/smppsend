@@ -41,7 +41,7 @@ defmodule SMPPSend.ESMEHelpers do
 
   def send_messages(esme, [submit_sm | submit_sms], esme_mod, message_ids) do
     Logger.info("Sending submit_sm#{PP.format(submit_sm)}")
-    case ESME.request(esme, submit_sm) do
+    case esme_mod.request(esme, submit_sm) do
       {:ok, resp} ->
         Logger.info("Got response#{PP.format(resp)}")
         case Pdu.command_status(resp) do
