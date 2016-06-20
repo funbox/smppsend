@@ -42,8 +42,8 @@ defmodule SMPPSend.PduHelpersTest do
     end)
   end
   defp check_pdu_tlvs(pdu, fields) do
-    fields |> Keyword.keys |> Enum.each(fn(id) ->
-      assert fields[id] == Pdu.optional_field(pdu, id)
+    fields |> Enum.each(fn({id, value}) ->
+      assert value == Pdu.optional_field(pdu, id)
     end)
   end
 
