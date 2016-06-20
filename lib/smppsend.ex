@@ -179,6 +179,7 @@ defmodule SMPPSend do
 
   defp start_servers(opts) do
     Application.start(:ranch, :permanent)
+    Process.flag(:trap_exit, true)
     opts
   end
 
@@ -210,7 +211,7 @@ defmodule SMPPSend do
 
       case submit_sms do
         {:ok, pdus} ->
-          case SMPPSend.PduHelpers.send_messages(esme, pdus) do
+          case SMPPSend.ESMEHelpers.send_messages(esme, pdus) do
             {:ok, message_ids} -> message_ids
             {:error, error} -> error!(6, "Message submit failed, #{error}")
           end
