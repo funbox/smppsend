@@ -77,32 +77,143 @@ defmodule SMPPSend do
   ]
 
   def main(args) do
-    args
-    |> parse
-    |> convert_tlvs
-    |> validate_unknown
-    |> set_defaults
-    |> show_help
-    |> validate_missing
-    |> convert_to_ucs2
-    |> start_servers
-    |> bind
-    |> send_messages
-    |> wait_dlrs
-    |> wait
+    chain(args, [
+      &parse/1,
+      &convert_tlvs/1,
+      &validate_unknown/1,
+      &set_defaults/1,
+      &show_help/1,
+      &validate_missing/1,
+      &convert_to_ucs2/1,
+      &start_servers/1,
+      &bind/1,
+      &send_messages/1,
+      &wait_dlrs/1,
+      &wait/1
+    ])
   end
 
   defp parse(args) do
     {parsed, remaining, invalid} = OptionParser.parse(args, switches: @switches)
 
-    if length(invalid) > 0 do
-      error!(1, "Invalid options: #{format_keys(invalid)}")
+    cond do
+      length(invalid) > 0 -> {:error, "Invalid options: #{format_keys(invalid)}"}
+      length(remaining) > 0 -> {:error, "Redundant command line arguments: #{format_keys(remaining)}"}
+      true -> {:ok, parsed}
     end
-    if length(remaining) > 0 do
-      error!(1, "Redundant command line arguments: #{format_keys(remaining)}")
-    end
+  end
 
-    parsed
+  defp convert_tlvs(opts) do
+    case SMPPSend.TlvParser.convert_tlvs(opts) do
+      {:ok, opts} -> {:ok, opts}
+      {:error, message, key} -> {:error, "Error parsing tlv option #{format_keys(key)}: #{message}"}
+    end
+  end
+
+  defp validate_unknown(opts) do
+    case SMPPSend.OptionHelpers.find_unknown(opts, [:tlvs | @switches |> Keyword.keys]) do
+      [] -> {:ok, opts}
+      unknown -> {:error, "Unrecognized options: #{format_keys(unknown)}"}
+    end
+  end
+
+  defp set_defaults(opts) do
+    {:ok, SMPPSend.OptionHelpers.set_defaults(opts, @defaults)}
+  end
+
+  defp validate_missing(opts) do
+    case SMPPSend.OptionHelpers.find_missing(opts, @required) do
+      [] -> {:ok, opts}
+      missing -> {:error, "Missing options: #{format_keys(missing)}"}
+    end
+  end
+
+  defp show_help(opts) do
+    if opts[:help] do
+      IO.puts(SMPPSend.Usage.help)
+      :exit
+    else
+      {:ok, opts}
+    end
+  end
+
+  defp convert_to_ucs2(opts) do
+    case SMPPSend.OptionHelpers.convert_to_ucs2(opts, :short_message) do
+      {:ok, new_opts} ->
+        tlvs = opts[:tlvs]
+        {:ok, message_payload_id} = SMPPEX.Protocol.TlvFormat.id_by_name(:message_payload)
+        case SMPPSend.OptionHelpers.convert_to_ucs2(tlvs, message_payload_id) do
+          {:ok, new_tlvs} -> {:ok, Keyword.put(new_opts, :tlvs, new_tlvs)}
+          {:error, error} -> {:error, "Failed to convert message_payload to ucs2: #{error}"}
+        end
+      {:error, error} -> {:error, "Failed to convert short_message to ucs2: #{error}"}
+    end
+  end
+
+  defp start_servers(opts) do
+    Application.start(:ranch, :permanent)
+    Process.flag(:trap_exit, true)
+    {:ok, opts}
+  end
+
+  defp bind(opts) do
+    host = opts[:host]
+    port = opts[:port]
+
+    case SMPPSend.PduHelpers.bind(opts) do
+      {:ok, bind} ->
+        case SMPPSend.ESMEHelpers.connect(host, port, bind) do
+          {:ok, esme} -> {:ok, {esme, opts}}
+          {:error, error} -> {:error, "Connecting SMSC failed: #{inspect error}"}
+        end
+      {:error, _error} = error -> error
+    end
+  end
+
+  defp send_messages({esme, opts}) do
+    if opts[:submit_sm] do
+      if opts[:udh] && opts[:split_max_bytes] do
+        {:error, "Options --udh and --split-max-bytes can't be used together"}
+      else
+        submit_sms = cond do
+          opts[:udh] -> SMPPSend.PduHelpers.submit_sms(opts, :custom_udh)
+          opts[:split_max_bytes] -> SMPPSend.PduHelpers.submit_sms(opts, :auto_split)
+          true -> SMPPSend.PduHelpers.submit_sms(opts, :none)
+        end
+
+        case submit_sms do
+          {:ok, pdus} ->
+            case SMPPSend.ESMEHelpers.send_messages(esme, pdus) do
+              {:ok, message_ids} -> {:ok, {esme, opts, message_ids}}
+              {:error, error} -> {:error, "Message submit failed, #{error}"}
+            end
+          {:error, _error} = error -> error
+        end
+      end
+    else
+      {:ok, {esme, opts, []}}
+    end
+  end
+
+  defp wait_dlrs({esme, opts, message_ids}) do
+    if opts[:wait_dlrs] do
+      case SMPPSend.ESMEHelpers.wait_dlrs(esme, message_ids, opts[:wait_dlrs]) do
+        :ok ->
+          Logger.info("Dlrs for all sent messages received")
+          {:ok, {esme, opts}}
+        {:error, error} -> {:error, "Waiting dlrs failed: #{error}"}
+      end
+    else
+      {:ok, {esme, opts}}
+    end
+  end
+
+  defp wait({esme, opts}) do
+    if opts[:wait] do
+      SMPPSend.ESMEHelpers.wait_infinitely(esme)
+    else
+      :exit
+    end
   end
 
   defp format_keys(keys) when not is_list(keys), do: format_keys([keys])
@@ -121,118 +232,22 @@ defmodule SMPPSend do
     prefix <> Regex.replace(~r/_/, key_s, "-")
   end
 
-  defp error!(code, desc) do
+  defp error!(desc) do
     IO.puts :stderr, ~s/#{desc}/Rd
-    System.halt(code)
+    System.halt(1)
   end
 
-  defp convert_tlvs(opts) do
-    case SMPPSend.TlvParser.convert_tlvs(opts) do
-      {:ok, opts} -> opts
-      {:error, message, key} ->
-        error!(1, "Error parsing tlv option #{format_keys(key)}: #{message}")
+  defp exit! do
+    System.halt(0)
+  end
+
+  defp chain(arg, [fun | funs]) do
+    case fun.(arg) do
+      {:ok, res} -> chain(res, funs)
+      {:error, error} -> error!(error)
+      :exit -> exit!
     end
   end
-
-  defp validate_unknown(opts) do
-    case SMPPSend.OptionHelpers.find_unknown(opts, [:tlvs | @switches |> Keyword.keys]) do
-      [] -> opts
-      unknown -> error!(1, "Unrecognized options: #{format_keys(unknown)}")
-    end
-  end
-
-  defp set_defaults(opts) do
-    SMPPSend.OptionHelpers.set_defaults(opts, @defaults)
-  end
-
-  defp validate_missing(opts) do
-    case SMPPSend.OptionHelpers.find_missing(opts, @required) do
-      [] -> opts
-      missing -> error!(1, "Missing options: #{format_keys(missing)}")
-    end
-  end
-
-  defp show_help(opts) do
-    if opts[:help] do
-      IO.puts(SMPPSend.Usage.help)
-      System.halt(0)
-    end
-    opts
-  end
-
-  defp convert_to_ucs2(opts) do
-    case SMPPSend.OptionHelpers.convert_to_ucs2(opts, :short_message) do
-      {:ok, new_opts} ->
-        tlvs = opts[:tlvs]
-        {:ok, message_payload_id} = SMPPEX.Protocol.TlvFormat.id_by_name(:message_payload)
-        case SMPPSend.OptionHelpers.convert_to_ucs2(tlvs, message_payload_id) do
-          {:ok, new_tlvs} -> Keyword.put(new_opts, :tlvs, new_tlvs)
-          {:error, error} -> error!(7, "Failed to convert message_payload to ucs2: #{error}")
-        end
-      {:error, error} -> error!(7, "Failed to convert short_message to ucs2: #{error}")
-    end
-  end
-
-  defp start_servers(opts) do
-    Application.start(:ranch, :permanent)
-    Process.flag(:trap_exit, true)
-    opts
-  end
-
-  defp bind(opts) do
-    host = opts[:host]
-    port = opts[:port]
-
-    case SMPPSend.PduHelpers.bind(opts) do
-      {:ok, bind} ->
-        case SMPPSend.ESMEHelpers.connect(host, port, bind) do
-          {:ok, esme} -> {esme, opts}
-          {:error, error} -> error!(3, "Connecting SMSC failed: #{inspect error}")
-        end
-      {:error, error} -> error!(3, error)
-    end
-  end
-
-  defp send_messages({esme, opts}) do
-    message_ids = if opts[:submit_sm] do
-      if opts[:udh] && opts[:split_max_bytes] do
-        error!(4, "Options --udh and --split-max-bytes can't be used together")
-      end
-
-      submit_sms = cond do
-        opts[:udh] -> SMPPSend.PduHelpers.submit_sms(opts, :custom_udh)
-        opts[:split_max_bytes] -> SMPPSend.PduHelpers.submit_sms(opts, :auto_split)
-        true -> SMPPSend.PduHelpers.submit_sms(opts, :none)
-      end
-
-      case submit_sms do
-        {:ok, pdus} ->
-          case SMPPSend.ESMEHelpers.send_messages(esme, pdus) do
-            {:ok, message_ids} -> message_ids
-            {:error, error} -> error!(6, "Message submit failed, #{error}")
-          end
-        {:error, error} -> error!(4, error)
-      end
-    else
-      []
-    end
-    {esme, opts, message_ids}
-  end
-
-  defp wait_dlrs({esme, opts, message_ids}) do
-    if opts[:wait_dlrs] do
-      case SMPPSend.ESMEHelpers.wait_dlrs(esme, message_ids, opts[:wait_dlrs]) do
-        :ok -> Logger.info("Dlrs for all sent messages received")
-        {:error, error} -> error!(4, "Waiting dlrs failed: #{error}")
-      end
-    end
-    {esme, opts}
-  end
-
-  defp wait({esme, opts}) do
-    if opts[:wait] do
-      SMPPSend.ESMEHelpers.wait_infinitely(esme)
-    end
-  end
+  defp chain(_, []), do: exit!
 
 end
