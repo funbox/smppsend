@@ -207,13 +207,56 @@ defmodule SMPPSend.ESMEHelpersTest do
 
     Doppler.def(esme_mod, :wait_for_pdus, fn([message_id | rest_message_ids], :esme, _timeout) ->
       dlr = {:pdu, Factory.delivery_report(message_id, {"from", 1, 1}, {"to", 1, 1})}
-      resp = {:resp, Factory.enquire_link_resp}
+      resp = {:resp, Factory.enquire_link_resp, Factory.enquire_link}
       error = {:error, Factory.enquire_link, "oops"}
       timeout = {:timeout, Factory.enquire_link}
       {[resp, error, timeout, dlr], rest_message_ids}
     end)
 
     assert :ok = ESMEHelpers.wait_dlrs(:esme, message_ids, 10, esme_mod)
+
+  end
+
+  test "wait_infinitely, ok" do
+    esme_mod = Doppler.start(nil)
+
+    next = fn(_,_,_) -> :ok end
+
+    Doppler.def(esme_mod, :wait_for_pdus, fn(_, :esme) ->
+      dlr = {:pdu, Factory.delivery_report("message_id", {"from", 1, 1}, {"to", 1, 1})}
+      resp = {:resp, Factory.enquire_link_resp, Factory.enquire_link}
+      error = {:error, Factory.enquire_link, "oops"}
+      timeout = {:timeout, Factory.enquire_link}
+      {[resp, error, timeout, dlr], nil}
+    end)
+
+    assert :ok = ESMEHelpers.wait_infinitely(:esme, esme_mod, next)
+
+  end
+
+  test "wait_infinitely, stop" do
+    esme_mod = Doppler.start(nil)
+
+    next = fn(_,_,_) -> :ok end
+
+    Doppler.def(esme_mod, :wait_for_pdus, fn(_, :esme) ->
+      {:stop, nil}
+    end)
+
+    assert {:error, _} = ESMEHelpers.wait_infinitely(:esme, esme_mod, next)
+
+  end
+
+  test "wait_infinitely, timeout" do
+    esme_mod = Doppler.start(nil)
+
+    next = fn(_,_,_) -> :ok end
+
+    Doppler.def(esme_mod, :wait_for_pdus, fn(_, :esme) ->
+      {:timeout, nil}
+    end)
+
+    assert :ok = ESMEHelpers.wait_infinitely(:esme, esme_mod, next)
 
   end
 end

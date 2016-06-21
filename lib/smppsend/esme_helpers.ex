@@ -82,7 +82,7 @@ defmodule SMPPSend.ESMEHelpers do
       _ -> handle_wait_dlr_results(esme, esme_mod, rest_pdus, message_ids, timeout)
     end
   end
-  defp handle_wait_dlr_results(esme, esme_mod, [{:resp, pdu} | rest_pdus], message_ids, timeout) do
+  defp handle_wait_dlr_results(esme, esme_mod, [{:resp, pdu, _original_pdu} | rest_pdus], message_ids, timeout) do
     Logger.info("Pdu received:#{PP.format pdu}")
     handle_wait_dlr_results(esme, esme_mod, rest_pdus, message_ids, timeout)
   end
@@ -99,31 +99,35 @@ defmodule SMPPSend.ESMEHelpers do
   end
 
 
-  def wait_infinitely(esme, esme_mod \\ SMPPEX.ESME.Sync)
-  def wait_infinitely(esme, esme_mod) do
+  def wait_infinitely(esme, esme_mod \\ SMPPEX.ESME.Sync, next \\ &wait_infinitely/3)
+  def wait_infinitely(esme, esme_mod, next) do
     Logger.info("Waiting...")
 
     case esme_mod.wait_for_pdus(esme) do
       :stop -> {:error, "esme stopped"}
-      :timeout -> wait_infinitely(esme, esme_mod)
-      wait_result -> handle_wait_results(esme, esme_mod, wait_result)
+      :timeout -> next.(esme, esme_mod, next)
+      wait_result -> handle_wait_results(esme, esme_mod, wait_result, next)
     end
   end
 
-  defp handle_wait_results(esme, esme_mod, [{:resp, pdu} | rest_pdus]) do
+  defp handle_wait_results(esme, esme_mod, [{:pdu, pdu} | rest_pdus], next) do
     Logger.info("Pdu received:#{PP.format pdu}")
-    handle_wait_results(esme, esme_mod, rest_pdus)
+    handle_wait_results(esme, esme_mod, rest_pdus, next)
   end
-  defp handle_wait_results(esme, esme_mod, [{:timeout, pdu} | rest_pdus]) do
+  defp handle_wait_results(esme, esme_mod, [{:resp, pdu, _original_pdu} | rest_pdus], next) do
+    Logger.info("Pdu received:#{PP.format pdu}")
+    handle_wait_results(esme, esme_mod, rest_pdus, next)
+  end
+  defp handle_wait_results(esme, esme_mod, [{:timeout, pdu} | rest_pdus], next) do
     Logger.info("Pdu timeout:#{PP.format pdu}")
-    handle_wait_results(esme, esme_mod, rest_pdus)
+    handle_wait_results(esme, esme_mod, rest_pdus, next)
   end
-  defp handle_wait_results(esme, esme_mod, [{:error, pdu, error} | rest_pdus]) do
+  defp handle_wait_results(esme, esme_mod, [{:error, pdu, error} | rest_pdus], next) do
     Logger.info("Pdu error(#{inspect error}):#{PP.format pdu}")
-    handle_wait_results(esme, esme_mod, rest_pdus)
+    handle_wait_results(esme, esme_mod, rest_pdus, next)
   end
-  defp handle_wait_results(esme, esme_mod, []) do
-    wait_infinitely(esme, esme_mod)
+  defp handle_wait_results(esme, esme_mod, [], next) do
+    next.(esme, esme_mod, next)
   end
 
 end
