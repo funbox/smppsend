@@ -76,8 +76,11 @@ defmodule SMPPSend do
     :submit_sm
   ]
 
+  @exit_code_ok 0
+  @exit_code_error 1
+
   def main(args) do
-    chain(args, [
+    code = chain(args, [
       &parse/1,
       &convert_tlvs/1,
       &validate_unknown/1,
@@ -91,6 +94,7 @@ defmodule SMPPSend do
       &wait_dlrs/1,
       &wait/1
     ])
+    System.halt(code)
   end
 
   defp parse(args) do
@@ -232,22 +236,15 @@ defmodule SMPPSend do
     prefix <> Regex.replace(~r/_/, key_s, "-")
   end
 
-  defp error!(desc) do
-    IO.puts :stderr, ~s/#{desc}/Rd
-    System.halt(1)
-  end
-
-  defp exit! do
-    System.halt(0)
-  end
-
   defp chain(arg, [fun | funs]) do
     case fun.(arg) do
       {:ok, res} -> chain(res, funs)
-      {:error, error} -> error!(error)
-      :exit -> exit!
+      {:error, error} ->
+        IO.puts :stderr, ~s/#{error}/Rd
+        @exit_code_error
+      :exit -> @exit_code_ok
     end
   end
-  defp chain(_, []), do: exit!
+  defp chain(_, []), do: @exit_code_ok
 
 end
