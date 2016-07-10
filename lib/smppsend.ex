@@ -94,6 +94,7 @@ defmodule SMPPSend do
       &wait_dlrs/1,
       &wait/1
     ])
+    Logger.flush
     System.halt(code)
   end
 
