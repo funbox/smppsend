@@ -1,5 +1,6 @@
 defmodule SMPPSend.ESMEHelpers do
   alias SMPPEX.Pdu
+  alias SMPPEX.Pdu.Factory
   alias SMPPEX.Pdu.PP
   alias :timer, as: Timer
 
@@ -79,6 +80,9 @@ defmodule SMPPSend.ESMEHelpers do
     Logger.info("Pdu received:#{PP.format pdu}")
     case Pdu.command_name(pdu) do
       :deliver_sm -> handle_wait_dlr_results(esme, esme_mod, rest_pdus, message_ids -- [Pdu.field(pdu, :receipted_message_id)], timeout)
+      :enquire_link ->
+        reply_to_enquire_link(esme, pdu)
+        handle_wait_dlr_results(esme, esme_mod, rest_pdus, message_ids, timeout)
       _ -> handle_wait_dlr_results(esme, esme_mod, rest_pdus, message_ids, timeout)
     end
   end
@@ -112,6 +116,7 @@ defmodule SMPPSend.ESMEHelpers do
 
   defp handle_wait_results(esme, esme_mod, [{:pdu, pdu} | rest_pdus], next) do
     Logger.info("Pdu received:#{PP.format pdu}")
+    if Pdu.command_name(pdu) == :enquire_link, do: reply_to_enquire_link(esme, pdu)
     handle_wait_results(esme, esme_mod, rest_pdus, next)
   end
   defp handle_wait_results(esme, esme_mod, [{:resp, pdu, _original_pdu} | rest_pdus], next) do
@@ -128,6 +133,12 @@ defmodule SMPPSend.ESMEHelpers do
   end
   defp handle_wait_results(esme, esme_mod, [], next) do
     next.(esme, esme_mod, next)
+  end
+
+  defp reply_to_enquire_link(esme, pdu) do
+    resp = Factory.enquire_link_resp
+    Logger.info("Sending enquire_link_resp:#{PP.format resp}")
+    SMPPEX.ESME.reply(esme, pdu, resp)
   end
 
 end
