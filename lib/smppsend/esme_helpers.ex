@@ -97,7 +97,7 @@ defmodule SMPPSend.ESMEHelpers do
     end
   end
 
-  defp consume_async_results(esme, esme_mod \\ SMPP.ESME.Sync) do
+  defp consume_async_results(esme, esme_mod) do
     pdus = esme_mod.pdus(esme)
     handle_async_results(esme, pdus)
   end
