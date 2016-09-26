@@ -17,10 +17,9 @@ If you want to make a Linux-compartible binary for specific versions of OTP plat
 
 You need [Docker](https://www.docker.com/) installed to build.
 
-You can also download precompiled Linux-compartible binaries from [Releases](https://github.com/savonarola/smppsend/releases) page. 
+You can also download precompiled Linux-compartible binaries from [Releases](https://github.com/savonarola/smppsend/releases) page.
 
 ## Usage
------
 
 See
 
