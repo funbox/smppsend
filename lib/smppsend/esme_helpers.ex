@@ -18,11 +18,12 @@ defmodule SMPPSend.ESMEHelpers do
   end
 
   defp bind(esme, bind_pdu, esme_mod) do
-    Logger.info "Binding:#{PP.format(bind_pdu)}"
+    Logger.info "Binding"
 
     response = esme_mod.request(esme, bind_pdu)
     case response do
       {:ok, pdu} ->
+        consume_async_results(esme, esme_mod)
         Logger.info("Bind response:#{PP.format(pdu)}")
         case Pdu.command_status(pdu) do
           0 ->
@@ -42,9 +43,10 @@ defmodule SMPPSend.ESMEHelpers do
   def send_messages(_esme, [], _esme_mod, message_ids), do: {:ok, Enum.reverse(message_ids)}
 
   def send_messages(esme, [submit_sm | submit_sms], esme_mod, message_ids) do
-    Logger.info("Sending submit_sm#{PP.format(submit_sm)}")
+    Logger.info("Sending submit_sm")
     case esme_mod.request(esme, submit_sm) do
       {:ok, resp} ->
+        consume_async_results(esme, esme_mod)
         Logger.info("Got response#{PP.format(resp)}")
         case Pdu.command_status(resp) do
           0 -> send_messages(esme, submit_sms, esme_mod, [Pdu.field(resp, :message_id) | message_ids])
@@ -66,7 +68,13 @@ defmodule SMPPSend.ESMEHelpers do
     case wait_for_pdus(esme, esme_mod, timeout) do
       {_, :stop} -> {:error, "ESME stopped while waiting for dlrs"}
       {_, :timeout} -> {:error, "timeout while waiting for dlrs"}
-      {time, pdus} -> handle_wait_dlr_results(esme, esme_mod, pdus, message_ids, timeout - div(time, 1000))
+      {time, pdus} ->
+        receipted_message_ids = handle_async_results(esme, pdus)
+        case message_ids -- receipted_message_ids do
+          [] -> :ok
+          remaining_message_ids ->
+            wait_dlrs(esme, remaining_message_ids, timeout - div(time, 1000), esme_mod)
+        end
     end
   end
 
@@ -76,33 +84,6 @@ defmodule SMPPSend.ESMEHelpers do
     end)
   end
 
-  defp handle_wait_dlr_results(esme, esme_mod, [{:pdu, pdu} | rest_pdus], message_ids, timeout) do
-    Logger.info("Pdu received:#{PP.format pdu}")
-    case Pdu.command_name(pdu) do
-      :deliver_sm -> handle_wait_dlr_results(esme, esme_mod, rest_pdus, message_ids -- [Pdu.field(pdu, :receipted_message_id)], timeout)
-      :enquire_link ->
-        reply_to_enquire_link(esme, pdu)
-        handle_wait_dlr_results(esme, esme_mod, rest_pdus, message_ids, timeout)
-      _ -> handle_wait_dlr_results(esme, esme_mod, rest_pdus, message_ids, timeout)
-    end
-  end
-  defp handle_wait_dlr_results(esme, esme_mod, [{:resp, pdu, _original_pdu} | rest_pdus], message_ids, timeout) do
-    Logger.info("Pdu received:#{PP.format pdu}")
-    handle_wait_dlr_results(esme, esme_mod, rest_pdus, message_ids, timeout)
-  end
-  defp handle_wait_dlr_results(esme, esme_mod, [{:timeout, pdu} | rest_pdus], message_ids, timeout) do
-    Logger.info("Pdu timeout:#{PP.format pdu}")
-    handle_wait_dlr_results(esme, esme_mod, rest_pdus, message_ids, timeout)
-  end
-  defp handle_wait_dlr_results(esme, esme_mod, [{:error, pdu, error} | rest_pdus], message_ids, timeout) do
-    Logger.info("Pdu error(#{inspect error}):#{PP.format pdu}")
-    handle_wait_dlr_results(esme, esme_mod, rest_pdus, message_ids, timeout)
-  end
-  defp handle_wait_dlr_results(esme, esme_mod, [], message_ids, timeout) do
-    wait_dlrs(esme, message_ids, timeout, esme_mod)
-  end
-
-
   def wait_infinitely(esme, esme_mod \\ SMPPEX.ESME.Sync, next \\ &wait_infinitely/3)
   def wait_infinitely(esme, esme_mod, next) do
     Logger.info("Waiting...")
@@ -110,34 +91,57 @@ defmodule SMPPSend.ESMEHelpers do
     case esme_mod.wait_for_pdus(esme) do
       :stop -> {:error, "esme stopped"}
       :timeout -> next.(esme, esme_mod, next)
-      wait_result -> handle_wait_results(esme, esme_mod, wait_result, next)
+      wait_result ->
+        handle_async_results(esme, wait_result)
+        next.(esme, esme_mod, next)
     end
   end
 
-  defp handle_wait_results(esme, esme_mod, [{:pdu, pdu} | rest_pdus], next) do
-    Logger.info("Pdu received:#{PP.format pdu}")
-    if Pdu.command_name(pdu) == :enquire_link, do: reply_to_enquire_link(esme, pdu)
-    handle_wait_results(esme, esme_mod, rest_pdus, next)
+  defp consume_async_results(esme, esme_mod \\ SMPP.ESME.Sync) do
+    pdus = esme_mod.pdus(esme)
+    handle_async_results(esme, pdus)
   end
-  defp handle_wait_results(esme, esme_mod, [{:resp, pdu, _original_pdu} | rest_pdus], next) do
+
+  defp handle_async_results(esme, pdus, message_ids \\ [])
+
+  defp handle_async_results(_esme, [], message_ids), do: message_ids
+
+  defp handle_async_results(esme, [{:pdu, pdu} | rest_pdus], message_ids) do
     Logger.info("Pdu received:#{PP.format pdu}")
-    handle_wait_results(esme, esme_mod, rest_pdus, next)
+    case Pdu.command_name(pdu) do
+      :deliver_sm ->
+        receipted_message_id = Pdu.field(pdu, :receipted_message_id)
+        handle_async_results(esme, rest_pdus, [ receipted_message_id | message_ids ])
+      :enquire_link ->
+        reply_to_enquire_link(esme, pdu)
+        handle_async_results(esme, rest_pdus, message_ids)
+      _ ->
+        handle_async_results(esme, rest_pdus, message_ids)
+    end
   end
-  defp handle_wait_results(esme, esme_mod, [{:timeout, pdu} | rest_pdus], next) do
+
+  defp handle_async_results(esme, [{:resp, pdu, _original_pdu} | rest_pdus], message_ids) do
+    Logger.info("Response received:#{PP.format pdu}")
+    handle_async_results(esme, rest_pdus, message_ids)
+  end
+
+  defp handle_async_results(esme, [{:timeout, pdu} | rest_pdus], message_ids) do
     Logger.info("Pdu timeout:#{PP.format pdu}")
-    handle_wait_results(esme, esme_mod, rest_pdus, next)
+    handle_async_results(esme, rest_pdus, message_ids)
   end
-  defp handle_wait_results(esme, esme_mod, [{:error, pdu, error} | rest_pdus], next) do
-    Logger.info("Pdu error(#{inspect error}):#{PP.format pdu}")
-    handle_wait_results(esme, esme_mod, rest_pdus, next)
+
+  defp handle_async_results(esme, [{:ok, pdu} | rest_pdus], message_ids) do
+    Logger.info("Pdu sent:#{PP.format pdu}")
+    handle_async_results(esme, rest_pdus, message_ids)
   end
-  defp handle_wait_results(esme, esme_mod, [], next) do
-    next.(esme, esme_mod, next)
+
+  defp handle_async_results(esme, [{:error, pdu, error} | rest_pdus], message_ids) do
+    Logger.info("Pdu send error(#{inspect error}):#{PP.format pdu}")
+    handle_async_results(esme, rest_pdus, message_ids)
   end
 
   defp reply_to_enquire_link(esme, pdu) do
     resp = Factory.enquire_link_resp
-    Logger.info("Sending enquire_link_resp:#{PP.format resp}")
     SMPPEX.ESME.reply(esme, pdu, resp)
   end
 

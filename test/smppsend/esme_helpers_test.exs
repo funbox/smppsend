@@ -27,6 +27,9 @@ defmodule SMPPSend.ESMEHelpersTest do
       resp = Factory.bind_transmitter_resp(0, "system_id1")
       {{:ok, resp}, ref}
     end)
+    Doppler.def(esme_mod, :pdus, fn(st, _) ->
+      {[], st}
+    end)
 
     assert {:ok, {:esme, ref}} == ESMEHelpers.connect(host, port, bind_pdu, esme_mod)
 
@@ -64,6 +67,9 @@ defmodule SMPPSend.ESMEHelpersTest do
     Doppler.def(esme_mod, :request, fn(ref, _, _) ->
       resp = Factory.bind_transmitter_resp(1)
       {{:ok, resp}, ref}
+    end)
+    Doppler.def(esme_mod, :pdus, fn(ref, _) ->
+      {[], ref}
     end)
 
     assert {:error, _} = ESMEHelpers.connect(host, port, bind_pdu, esme_mod)
@@ -141,6 +147,9 @@ defmodule SMPPSend.ESMEHelpersTest do
       resp = Factory.submit_sm_resp(0, message_id)
       {{:ok, resp}, message_ids}
     end)
+    Doppler.def(esme_mod, :pdus, fn(st, :esme) ->
+      {[], st}
+    end)
 
     assert {:ok, ["1", "2"]} == ESMEHelpers.send_messages(:esme, [submit_sm1, submit_sm2], esme_mod)
 
@@ -157,6 +166,9 @@ defmodule SMPPSend.ESMEHelpersTest do
       resp = Factory.submit_sm_resp(command_status, message_id)
       {{:ok, resp}, message_ids}
     end)
+    Doppler.def(esme_mod, :pdus, fn(st, :esme) ->
+      {[], st}
+    end)
 
     assert {:error, _} = ESMEHelpers.send_messages(:esme, [submit_sm1, submit_sm2], esme_mod)
 
@@ -170,13 +182,15 @@ defmodule SMPPSend.ESMEHelpersTest do
 
   test "wait_dlrs: success" do
 
+    submit_sm1 = Factory.submit_sm({"from", 1, 1}, {"to", 1, 1}, "hello1")
+    submit_sm2 = Factory.submit_sm({"from", 1, 1}, {"to", 1, 1}, "hello2")
     message_ids = ["1", "2"]
 
     esme_mod = Doppler.start(message_ids)
 
     Doppler.def(esme_mod, :wait_for_pdus, fn([message_id | rest_message_ids], :esme, _timeout) ->
       dlr = Factory.delivery_report(message_id, {"from", 1, 1}, {"to", 1, 1})
-      {[{:pdu, dlr}], rest_message_ids}
+      {[{:ok, submit_sm1}, {:ok, submit_sm2}, {:pdu, dlr}], rest_message_ids}
     end)
 
     assert :ok = ESMEHelpers.wait_dlrs(:esme, message_ids, 10, esme_mod)
@@ -185,6 +199,8 @@ defmodule SMPPSend.ESMEHelpersTest do
 
   test "wait_dlrs: timeout" do
 
+    submit_sm1 = Factory.submit_sm({"from", 1, 1}, {"to", 1, 1}, "hello1")
+    submit_sm2 = Factory.submit_sm({"from", 1, 1}, {"to", 1, 1}, "hello2")
     message_ids = [{"1", 10}, {"2", 10}]
 
     esme_mod = Doppler.start(message_ids)
@@ -192,7 +208,7 @@ defmodule SMPPSend.ESMEHelpersTest do
     Doppler.def(esme_mod, :wait_for_pdus, fn([{message_id, time_to_sleep} | rest_message_ids], :esme, _timeout) ->
       dlr = Factory.delivery_report(message_id, {"from", 1, 1}, {"to", 1, 1})
       Timer.sleep(time_to_sleep)
-      {[{:pdu, dlr}], rest_message_ids}
+      {[{:ok, submit_sm1}, {:ok, submit_sm2}, {:pdu, dlr}], rest_message_ids}
     end)
 
     assert {:error, _} = ESMEHelpers.wait_dlrs(:esme, message_ids, 15, esme_mod)
@@ -201,16 +217,18 @@ defmodule SMPPSend.ESMEHelpersTest do
 
   test "wait_dlrs: mixed wait results" do
 
+
     message_ids = ["1", "2"]
 
     esme_mod = Doppler.start(message_ids)
 
     Doppler.def(esme_mod, :wait_for_pdus, fn([message_id | rest_message_ids], :esme, _timeout) ->
+      ok = {:ok, Factory.submit_sm({"from", 1, 1}, {"to", 1, 1}, "hello1")}
       dlr = {:pdu, Factory.delivery_report(message_id, {"from", 1, 1}, {"to", 1, 1})}
       resp = {:resp, Factory.enquire_link_resp, Factory.enquire_link}
       error = {:error, Factory.enquire_link, "oops"}
       timeout = {:timeout, Factory.enquire_link}
-      {[resp, error, timeout, dlr], rest_message_ids}
+      {[ok, resp, error, timeout, dlr], rest_message_ids}
     end)
 
     assert :ok = ESMEHelpers.wait_dlrs(:esme, message_ids, 10, esme_mod)
