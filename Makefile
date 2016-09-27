@@ -20,6 +20,7 @@ dependencies:
 	$(MIX) deps.compile
 
 clean:
+	rm -rf _build
 	$(MIX) deps.clean --all
 	$(MIX) clean
 
