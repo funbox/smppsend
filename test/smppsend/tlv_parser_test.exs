@@ -24,10 +24,15 @@ defmodule SMPPSend.TlvParserTest do
   end
 
   test "convert_tlvs: integer value" do
-    assert  {:ok, [tlvs: [{0x1234, <<1>>}]]} = convert_tlvs([{"tlv_x1234_i1", "1"}])
-    assert  {:ok, [tlvs: [{0x1234, <<0, 1>>}]]} = convert_tlvs([{"tlv_x1234_i2", "1"}])
-    assert  {:ok, [tlvs: [{0x1234, <<0, 0, 0, 1>>}]]} = convert_tlvs([{"tlv_x1234_i4", "1"}])
-    assert  {:ok, [tlvs: [{0x1234, <<0, 0, 0, 0, 0, 0, 0, 1>>}]]} = convert_tlvs([{"tlv_x1234_i8", "1"}])
+    assert  {:ok, [tlvs: [{0x1234, 1}]]} = convert_tlvs([{"tlv_x1234_i1", "1"}])
+    assert  {:ok, [tlvs: [{0x1234, 1}]]} = convert_tlvs([{"tlv_x1234_i2", "1"}])
+    assert  {:ok, [tlvs: [{0x1234, 1}]]} = convert_tlvs([{"tlv_x1234_i4", "1"}])
+    assert  {:ok, [tlvs: [{0x1234, 1}]]} = convert_tlvs([{"tlv_x1234_i8", "1"}])
+
+    assert  {:error, _, _} = convert_tlvs([{"tlv_x1234_i1", "256"}])
+    assert  {:error, _, _} = convert_tlvs([{"tlv_x1234_i2", "65536"}])
+    assert  {:error, _, _} = convert_tlvs([{"tlv_x1234_i4", "4294967296"}])
+    assert  {:error, _, _} = convert_tlvs([{"tlv_x1234_i8", "18446744073709551616"}])
   end
 
   test "convert_tlvs: bad integer value" do

@@ -1,5 +1,7 @@
 defmodule SMPPSend.TlvParser do
 
+  use Bitwise
+
   @tlv_re ~r/^tlv_(?:(?<hex_id>x[\da-fA-F]{4})|(?<name>[a-z\_]+))_(?<value_type>s|i(?<int_value_size>1|2|4|8)|h)$/
 
   def convert_tlvs(_options, _res \\ [], _tlvs \\ [])
@@ -25,8 +27,14 @@ defmodule SMPPSend.TlvParser do
   defp tlv_value(<<"i", _>>, int_value_size_s, value) do
     {int_value_size, ""} = Integer.parse(int_value_size_s)
     bit_value_size = 8 * int_value_size
+    max_val = 1 <<< bit_value_size
     case Integer.parse(value) do
-      {int, ""} -> {:ok, <<int :: big-unsigned-integer-size(bit_value_size)>>}
+      {int, ""} ->
+        if int < 0 or int >= max_val do
+          {:error, "bad integer value: #{int}, is expected to be between 0 and #{max_val - 1}"}
+        else
+          {:ok, int}
+        end
       _ -> {:error, "bad integer tlv value (#{inspect value})"}
     end
   end
