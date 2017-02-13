@@ -11,8 +11,5 @@ RUN curl -fSL -o elixir-precompiled.zip https://github.com/elixir-lang/elixir/re
 
 RUN unzip -d /usr/local elixir-precompiled.zip
 RUN mix local.hex --force
-
-
-
-
+RUN mix local.rebar --force
 
