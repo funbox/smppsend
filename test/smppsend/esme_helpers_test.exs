@@ -9,7 +9,7 @@ defmodule SMPPSend.ESMEHelpersTest do
 
   test "connect" do
 
-    ref = make_ref
+    ref = make_ref()
     esme_mod = Doppler.start(ref)
 
     bind_pdu = Factory.bind_transmitter("system_id", "password")
@@ -37,7 +37,7 @@ defmodule SMPPSend.ESMEHelpersTest do
 
   test "connect fail" do
 
-    ref = make_ref
+    ref = make_ref()
     esme_mod = Doppler.start(ref)
 
     bind_pdu = Factory.bind_transmitter("system_id", "password")
@@ -54,7 +54,7 @@ defmodule SMPPSend.ESMEHelpersTest do
 
   test "connect: bind fail" do
 
-    ref = make_ref
+    ref = make_ref()
     esme_mod = Doppler.start(ref)
 
     bind_pdu = Factory.bind_transmitter("system_id", "password")
@@ -78,7 +78,7 @@ defmodule SMPPSend.ESMEHelpersTest do
 
   test "connect: bind timeout" do
 
-    ref = make_ref
+    ref = make_ref()
     esme_mod = Doppler.start(ref)
 
     bind_pdu = Factory.bind_transmitter("system_id", "password")
@@ -98,7 +98,7 @@ defmodule SMPPSend.ESMEHelpersTest do
 
   test "connect: bind error" do
 
-    ref = make_ref
+    ref = make_ref()
     esme_mod = Doppler.start(ref)
 
     bind_pdu = Factory.bind_transmitter("system_id", "password")
@@ -118,7 +118,7 @@ defmodule SMPPSend.ESMEHelpersTest do
 
   test "connect: server close" do
 
-    ref = make_ref
+    ref = make_ref()
     esme_mod = Doppler.start(ref)
 
     bind_pdu = Factory.bind_transmitter("system_id", "password")
