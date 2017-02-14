@@ -15,7 +15,7 @@ defmodule Smppsend.Mixfile do
   end
 
   def application do
-    [applications: [:logger]]
+    [applications: [:logger, :smppex]]
   end
 
   defp deps do

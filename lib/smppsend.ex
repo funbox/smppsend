@@ -88,7 +88,7 @@ defmodule SMPPSend do
       &show_help/1,
       &validate_missing/1,
       &convert_to_ucs2/1,
-      &start_servers/1,
+      &trap_exit/1,
       &bind/1,
       &send_messages/1,
       &wait_dlrs/1,
@@ -155,8 +155,7 @@ defmodule SMPPSend do
     end
   end
 
-  defp start_servers(opts) do
-    Application.start(:ranch, :permanent)
+  defp trap_exit(opts) do
     Process.flag(:trap_exit, true)
     {:ok, opts}
   end
