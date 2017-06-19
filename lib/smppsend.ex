@@ -143,15 +143,19 @@ defmodule SMPPSend do
   end
 
   defp convert_to_ucs2(opts) do
-    case SMPPSend.OptionHelpers.convert_to_ucs2(opts, :short_message) do
-      {:ok, new_opts} ->
-        tlvs = opts[:tlvs]
-        {:ok, message_payload_id} = SMPPEX.Protocol.TlvFormat.id_by_name(:message_payload)
+    if opts[:ucs2] do
+      case SMPPSend.OptionHelpers.convert_to_ucs2(opts, :short_message) do
+        {:ok, new_opts} ->
+          tlvs = opts[:tlvs]
+          {:ok, message_payload_id} = SMPPEX.Protocol.TlvFormat.id_by_name(:message_payload)
         case SMPPSend.OptionHelpers.convert_to_ucs2(tlvs, message_payload_id) do
           {:ok, new_tlvs} -> {:ok, Keyword.put(new_opts, :tlvs, new_tlvs)}
           {:error, error} -> {:error, "Failed to convert message_payload to ucs2: #{error}"}
         end
-      {:error, error} -> {:error, "Failed to convert short_message to ucs2: #{error}"}
+        {:error, error} -> {:error, "Failed to convert short_message to ucs2: #{error}"}
+      end
+    else
+      {:ok, opts}
     end
   end
 
