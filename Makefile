@@ -1,7 +1,7 @@
 MIX=mix
 SMPPSEND_BIN=smppsend
 
-VERSIONS=17 18 19
+VERSIONS=17 18 19 20
 
 all: clean_bin $(VERSIONS) release
 
