@@ -145,4 +145,18 @@ defmodule SMPPSend.ESMEHelpers do
     SMPPEX.ESME.reply(esme, pdu, resp)
   end
 
+  def unbind(esme, esme_mod \\ SMPPEX.ESME.Sync) do
+    unbind_pdu = Factory.unbind
+    Logger.info("Sending unbind:#{PP.format unbind_pdu}")
+    response = esme_mod.request(esme, unbind_pdu)
+    case response do
+      {:ok, pdu} ->
+        Logger.info("Unbind resp received:#{PP.format pdu}")
+        :ok
+      :timeout -> {:error, "timeout"}
+      :stop -> {:error, "esme stopped"}
+      {:error, error} -> {:error, inspect(error)}
+    end
+  end
+
 end

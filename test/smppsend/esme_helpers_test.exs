@@ -3,6 +3,7 @@ defmodule SMPPSend.ESMEHelpersTest do
 
   alias :doppler, as: Doppler
   alias :timer, as: Timer
+  alias SMPPEX.Pdu
   alias SMPPEX.Pdu.Factory
   alias SMPPSend.ESMEHelpers
 
@@ -277,4 +278,49 @@ defmodule SMPPSend.ESMEHelpersTest do
     assert :ok = ESMEHelpers.wait_infinitely(:esme, esme_mod, next)
 
   end
+
+  test "unbind, ok" do
+    esme_mod = Doppler.start(nil)
+
+    Doppler.def(esme_mod, :request, fn(st, :esme, unbind_pdu) ->
+      assert Pdu.command_name(unbind_pdu) == :unbind
+      {{:ok, Factory.unbind_resp}, st}
+    end)
+
+    assert :ok = ESMEHelpers.unbind(:esme, esme_mod)
+  end
+
+  test "unbind, timeout" do
+    esme_mod = Doppler.start(nil)
+
+    Doppler.def(esme_mod, :request, fn(st, :esme, unbind_pdu) ->
+      assert Pdu.command_name(unbind_pdu) == :unbind
+      {:timeout, st}
+    end)
+
+    assert {:error, _} = ESMEHelpers.unbind(:esme, esme_mod)
+  end
+
+  test "unbind, stop" do
+    esme_mod = Doppler.start(nil)
+
+    Doppler.def(esme_mod, :request, fn(st, :esme, unbind_pdu) ->
+      assert Pdu.command_name(unbind_pdu) == :unbind
+      {:stop, st}
+    end)
+
+    assert {:error, _} = ESMEHelpers.unbind(:esme, esme_mod)
+  end
+
+  test "unbind, error" do
+    esme_mod = Doppler.start(nil)
+
+    Doppler.def(esme_mod, :request, fn(st, :esme, unbind_pdu) ->
+      assert Pdu.command_name(unbind_pdu) == :unbind
+      {{:error, :ooops}, st}
+    end)
+
+    assert {:error, _} = ESMEHelpers.unbind(:esme, esme_mod)
+  end
+
 end

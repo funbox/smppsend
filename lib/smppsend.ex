@@ -92,7 +92,8 @@ defmodule SMPPSend do
       &bind/1,
       &send_messages/1,
       &wait_dlrs/1,
-      &wait/1
+      &wait/1,
+      &unbind/1,
     ])
     Logger.flush
     System.halt(code)
@@ -220,7 +221,14 @@ defmodule SMPPSend do
     if opts[:wait] do
       SMPPSend.ESMEHelpers.wait_infinitely(esme)
     else
-      :exit
+      {:ok, {esme, opts}}
+    end
+  end
+
+  def unbind({esme, _opts}) do
+    case SMPPSend.ESMEHelpers.unbind(esme) do
+      :ok -> :exit
+      {:error, error} -> {:error, "Unbind failed: #{error}"}
     end
   end
 
