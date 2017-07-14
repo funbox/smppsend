@@ -10,14 +10,14 @@ If you want just to build `smppsend` executable for you current platform, just r
 
     $ mix do deps.get,escript.build
 
-If you want to make a Linux-compartible binary for specific versions of OTP platform
+If you want to make a Linux-compatible binary for specific versions of OTP platform
 (for example, OTP 19), run
 
     $ make VERSIONS=19
 
 You need [Docker](https://www.docker.com/) installed to build.
 
-You can also download precompiled Linux-compartible binaries from [Releases](https://github.com/savonarola/smppsend/releases) page.
+You can also download precompiled Linux-compatible binaries from [Releases](https://github.com/savonarola/smppsend/releases) page.
 
 ## Usage
 
