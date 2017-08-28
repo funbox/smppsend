@@ -100,7 +100,7 @@ defmodule SMPPSend do
   end
 
   defp parse(args) do
-    {parsed, remaining, invalid} = OptionParser.parse(args, switches: @switches)
+    {parsed, remaining, invalid} = OptionParser.parse(args, switches: @switches, allow_nonexistent_atoms: true)
 
     cond do
       length(invalid) > 0 -> {:error, "Invalid options: #{format_keys(invalid)}"}
