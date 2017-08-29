@@ -141,8 +141,8 @@ defmodule SMPPSend.ESMEHelpers do
   end
 
   defp reply_to_enquire_link(esme, pdu) do
-    resp = Factory.enquire_link_resp
-    SMPPEX.ESME.reply(esme, pdu, resp)
+    resp = Factory.enquire_link_resp |> Pdu.as_reply_to(pdu)
+    SMPPEX.Session.send_pdu(esme, resp)
   end
 
   def unbind(esme, esme_mod \\ SMPPEX.ESME.Sync) do
