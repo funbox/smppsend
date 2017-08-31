@@ -44,7 +44,7 @@ defmodule SMPPSend do
     udh_part_num: :integer,
 
     ucs2: :boolean,
-	  binary: :boolean,
+    binary: :boolean,
 
     wait_dlrs: :integer,
     wait: :boolean
@@ -64,7 +64,7 @@ defmodule SMPPSend do
     udh_part_num: 1,
 
     ucs2: false,
-	  binary: false,
+    binary: false,
 
     wait: false
   ]
