@@ -44,6 +44,7 @@ defmodule SMPPSend do
     udh_part_num: :integer,
 
     ucs2: :boolean,
+    binary: :boolean,
 
     wait_dlrs: :integer,
     wait: :boolean
@@ -63,6 +64,7 @@ defmodule SMPPSend do
     udh_part_num: 1,
 
     ucs2: false,
+    binary: false,
 
     wait: false
   ]
@@ -87,6 +89,7 @@ defmodule SMPPSend do
       &set_defaults/1,
       &show_help/1,
       &validate_missing/1,
+      &decode_hex_string/1,
       &convert_to_ucs2/1,
       &trap_exit/1,
       &bind/1,
@@ -143,6 +146,23 @@ defmodule SMPPSend do
     end
   end
 
+  defp decode_hex_string(opts) do
+    if opts[:binary] do
+      case SMPPSend.OptionHelpers.decode_hex_string(opts, :short_message) do
+        {:ok, new_opts} ->
+          tlvs = opts[:tlvs]
+          {:ok, message_payload_id} = SMPPEX.Protocol.TlvFormat.id_by_name(:message_payload)
+        case SMPPSend.OptionHelpers.decode_hex_string(tlvs, message_payload_id) do
+          {:ok, new_tlvs} -> {:ok, Keyword.put(new_opts, :tlvs, new_tlvs)}
+          {:error, error} -> {:error, "Failed to decode message_payload: #{error}"}
+        end
+        {:error, error} -> {:error, "Failed to decode short_message: #{error}"}
+      end
+    else
+      {:ok, opts}
+    end
+  end
+  
   defp convert_to_ucs2(opts) do
     if opts[:ucs2] do
       case SMPPSend.OptionHelpers.convert_to_ucs2(opts, :short_message) do

@@ -20,5 +20,19 @@ defmodule SMPPSend.OptionHelpersTest do
   test "convert_to_ucs2, error" do
     assert {:error, _} = convert_to_ucs2([a: <<231, 232>>, b: "пока"], :a)
   end
+  
+  test "decode_hex_string, ok" do
+    assert {:ok, new_list} = decode_hex_string([a: "003100320033", b: "пока"], :a)
+    assert Keyword.equal?([a: <<0, 49, 0, 50, 0, 51>>, b: "пока"], new_list)
+  end
+
+  test "decode_hex_string, length error" do
+    assert {:error, _} = decode_hex_string([a: "123", b: "пока"], :a)
+  end
+  
+  test "decode_hex_string, alphabet error" do
+    assert {:error, _} = decode_hex_string([a: "hello", b: "пока"], :a)
+  end
+  
 end
 
