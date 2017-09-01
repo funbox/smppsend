@@ -18,15 +18,15 @@ defmodule SMPPSend.OptionHelpers do
   def find_missing(opts, required_list) do
     required_list |> Enum.filter(fn(name) -> not Keyword.has_key?(opts, name) end)
   end
-  
+
   def decode_hex_string(opts, key) do
     modify_text_opt(opts, key, &to_bytes/1)
   end
-  
+
   def convert_to_ucs2(opts, key) do
     modify_text_opt(opts, key, &to_ucs2/1)
   end
-  
+
   def modify_text_opt(opts, key, modifier) do
     try do
       case List.keyfind(opts, key, 0) do
@@ -36,16 +36,16 @@ defmodule SMPPSend.OptionHelpers do
       end
     catch some, error ->
       {:error, inspect({some, error})}
-    end  
+    end
   end
 
   defp to_ucs2(str) do
     str
       |> to_char_list
       |> :xmerl_ucs.to_ucs2be
-      |> to_string
+      |> :erlang.list_to_binary
   end
-  
+
   defp to_bytes(hex_string) do
     Base.decode16!(hex_string, case: :mixed)
   end
