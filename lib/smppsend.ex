@@ -5,6 +5,7 @@ defmodule SMPPSend do
 
   @switches [
     help: :boolean,
+    version: :boolean,
 
     bind_mode: :string,
     host: :string,
@@ -88,6 +89,7 @@ defmodule SMPPSend do
       &validate_unknown/1,
       &set_defaults/1,
       &show_help/1,
+      &show_version/1,
       &validate_missing/1,
       &decode_hex_string/1,
       &convert_to_ucs2/1,
@@ -145,6 +147,16 @@ defmodule SMPPSend do
       {:ok, opts}
     end
   end
+
+  defp show_version(opts) do
+    if opts[:version] do
+      IO.puts(SMPPSend.Version.version)
+      :exit
+    else
+      {:ok, opts}
+    end
+  end
+
 
   defp decode_hex_string(opts) do
     if opts[:binary] do

@@ -7,6 +7,7 @@ Usage: C<smppsend> g<OPTIONS>
 Available options are:
 
   --help                                Show this help
+  --version                             Show version
 
   --bind-mode y<mode>                      Bind mode, one of the following: y<tx>(transmitter), y<rx>(receiver), y<trx>(transceiver)
 
@@ -20,7 +21,7 @@ Available options are:
   --udh                                 Prepend short_message with UDH. This option is incompatible with --split-max-bytes option
 
   --ucs2                                Convert short_message field and message_payload TLV from UTF8 to UCS2 before sending submit_sm PDUs
-  
+
   --binary                              Decode short_message field and message_payload TLV from raw hex representation (e.g. input `003100320033` to see `123` in a UCS2 message)
 
   --wait-dlrs y<timeout>                   Wait for for delivery reports for all sent submit_sm PDUs or exit with failure after y<timeout> ms
