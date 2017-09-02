@@ -4,7 +4,7 @@ defmodule Smppsend.Mixfile do
   def project do
     [
       app: :smppsend,
-      version: "0.1.12",
+      version: "0.1.13",
       elixir: "~> 1.1",
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
