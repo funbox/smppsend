@@ -9,5 +9,5 @@
   "mimerl": {:hex, :mimerl, "1.0.2", "993f9b0e084083405ed8252b99460c4f0563e41729ab42d9074fd5e52439be88", [:rebar3], [], "hexpm"},
   "poison": {:hex, :poison, "2.2.0", "4763b69a8a77bd77d26f477d196428b741261a761257ff1cf92753a0d4d24a63", [:mix], [], "hexpm"},
   "ranch": {:hex, :ranch, "1.4.0", "10272f95da79340fa7e8774ba7930b901713d272905d0012b06ca6d994f8826b", [:rebar3], [], "hexpm"},
-  "smppex": {:hex, :smppex, "2.0.0", "7c5259c588e29afe3b394462d6cff128f189dcc61b699f51681317f016c8748a", [:mix], [{:ranch, "~> 1.4", [hex: :ranch, repo: "hexpm", optional: false]}], "hexpm"},
+  "smppex": {:hex, :smppex, "2.0.1", "1287f4a857bff3eab7efa0e49c6a9a972672d883de6c69ec88e4c0cac787fe9d", [:mix], [{:ranch, "~> 1.4", [hex: :ranch, repo: "hexpm", optional: false]}], "hexpm"},
   "ssl_verify_fun": {:hex, :ssl_verify_fun, "1.1.1", "28a4d65b7f59893bc2c7de786dec1e1555bd742d336043fe644ae956c3497fbe", [:make, :rebar], [], "hexpm"}}
