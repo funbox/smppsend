@@ -1,5 +1,9 @@
 [![Build Status](https://travis-ci.org/savonarola/smppsend.svg?branch=master)](https://travis-ci.org/savonarola/smppsend)
 
+<a href="https://funbox.ru">
+  <img src="http://funbox.ru/badges/sponsored_by_funbox.svg" alt="Sponsored by FunBox" width=250 />
+</a>
+
 # SMPPSend
 
 Simple utility for testing SMSC connections. It allows to bind to SMSCs, send submit_sm PDUs and wait for delivery reports.
