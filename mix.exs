@@ -20,7 +20,8 @@ defmodule Smppsend.Mixfile do
 
   defp deps do
     [
-      {:smppex, "~> 2.0"},
+      #{:smppex, "~> 2.0"},
+      {:smppex, path: "../smppex"},
       {:dye, "~> 0.4.0"},
       {:coverex, "~> 1.4.1", only: :test},
       {:doppler, "~> 0.1.0", only: :test}
