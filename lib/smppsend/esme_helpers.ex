@@ -112,9 +112,6 @@ defmodule SMPPSend.ESMEHelpers do
       :deliver_sm ->
         receipted_message_id = Pdu.field(pdu, :receipted_message_id)
         handle_async_results(esme, rest_pdus, [ receipted_message_id | message_ids ])
-      :enquire_link ->
-        reply_to_enquire_link(esme, pdu)
-        handle_async_results(esme, rest_pdus, message_ids)
       _ ->
         handle_async_results(esme, rest_pdus, message_ids)
     end
@@ -138,11 +135,6 @@ defmodule SMPPSend.ESMEHelpers do
   defp handle_async_results(esme, [{:error, pdu, error} | rest_pdus], message_ids) do
     Logger.info("Pdu send error(#{inspect error}):#{PP.format pdu}")
     handle_async_results(esme, rest_pdus, message_ids)
-  end
-
-  defp reply_to_enquire_link(esme, pdu) do
-    resp = Factory.enquire_link_resp |> Pdu.as_reply_to(pdu)
-    SMPPEX.Session.send_pdu(esme, resp)
   end
 
   def unbind(esme, esme_mod \\ SMPPEX.ESME.Sync) do
