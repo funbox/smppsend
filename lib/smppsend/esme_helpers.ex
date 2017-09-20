@@ -18,12 +18,10 @@ defmodule SMPPSend.ESMEHelpers do
   end
 
   defp bind(esme, bind_pdu, esme_mod) do
-    Logger.info "Binding"
-
+    Logger.info("Binding #{PP.format(bind_pdu)}")
     response = esme_mod.request(esme, bind_pdu)
     case response do
       {:ok, pdu} ->
-        consume_async_results(esme, esme_mod)
         Logger.info("Bind response:#{PP.format(pdu)}")
         case Pdu.command_status(pdu) do
           0 ->
@@ -43,10 +41,9 @@ defmodule SMPPSend.ESMEHelpers do
   def send_messages(_esme, [], _esme_mod, message_ids), do: {:ok, Enum.reverse(message_ids)}
 
   def send_messages(esme, [submit_sm | submit_sms], esme_mod, message_ids) do
-    Logger.info("Sending submit_sm")
+    Logger.info("Sending submit_sm#{PP.format(submit_sm)}")
     case esme_mod.request(esme, submit_sm) do
       {:ok, resp} ->
-        consume_async_results(esme, esme_mod)
         Logger.info("Got response#{PP.format(resp)}")
         case Pdu.command_status(resp) do
           0 -> send_messages(esme, submit_sms, esme_mod, [Pdu.field(resp, :message_id) | message_ids])
@@ -95,11 +92,6 @@ defmodule SMPPSend.ESMEHelpers do
         handle_async_results(esme, wait_result)
         next.(esme, esme_mod, next)
     end
-  end
-
-  defp consume_async_results(esme, esme_mod) do
-    pdus = esme_mod.pdus(esme)
-    handle_async_results(esme, pdus)
   end
 
   defp handle_async_results(esme, pdus, message_ids \\ [])
