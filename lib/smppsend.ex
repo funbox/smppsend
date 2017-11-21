@@ -44,6 +44,8 @@ defmodule SMPPSend do
     udh_part_num: :integer,
 
     ucs2: :boolean,
+    gsm: :boolean,
+    latin1: :boolean,
 
     wait_dlrs: :integer,
     wait: :boolean
@@ -63,6 +65,8 @@ defmodule SMPPSend do
     udh_part_num: 1,
 
     ucs2: false,
+    latin1: false,
+    gsm: false,
 
     wait: false
   ]
@@ -87,7 +91,7 @@ defmodule SMPPSend do
       &set_defaults/1,
       &show_help/1,
       &validate_missing/1,
-      &convert_to_ucs2/1,
+      &encode/1,
       &trap_exit/1,
       &bind/1,
       &send_messages/1,
@@ -143,13 +147,22 @@ defmodule SMPPSend do
     end
   end
 
-  defp convert_to_ucs2(opts) do
-    if opts[:ucs2] do
-      case SMPPSend.OptionHelpers.convert_to_ucs2(opts, :short_message) do
+  defp encoding_function(opts) do
+    cond do
+      opts[:ucs2] -> &SMPPSend.OptionHelpers.convert_to_ucs2/2
+      opts[:gsm] -> &SMPPSend.OptionHelpers.convert_to_gsm/2
+      opts[:latin1] -> &SMPPSend.OptionHelpers.convert_to_latin1/2
+    end
+  end
+
+  defp encode(opts) do
+    if opts[:ucs2] or opts[:latin1] or opts[:gsm] do
+      encoding_fn = encoding_function(opts)
+      case encoding_fn.(opts, :short_message) do
         {:ok, new_opts} ->
           tlvs = opts[:tlvs]
           {:ok, message_payload_id} = SMPPEX.Protocol.TlvFormat.id_by_name(:message_payload)
-        case SMPPSend.OptionHelpers.convert_to_ucs2(tlvs, message_payload_id) do
+        case encoding_fn.(tlvs, message_payload_id) do
           {:ok, new_tlvs} -> {:ok, Keyword.put(new_opts, :tlvs, new_tlvs)}
           {:error, error} -> {:error, "Failed to convert message_payload to ucs2: #{error}"}
         end

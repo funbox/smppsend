@@ -31,6 +31,30 @@ defmodule SMPPSend.OptionHelpers do
     end
   end
 
+  def convert_to_gsm(opts, key) do
+    try do
+      case List.keyfind(opts, key, 0) do
+        {^key, value} ->
+          {:ok, List.keyreplace(opts, key, 0, {key, to_gsm(value)})}
+          nil -> {:ok, opts}
+      end
+    catch some, error ->
+        {:error, inspect({some, error})}
+    end
+  end
+
+  def convert_to_latin1(opts, key) do
+    try do
+      case List.keyfind(opts, key, 0) do
+        {^key, value} ->
+          {:ok, List.keyreplace(opts, key, 0, {key, to_latin1(value)})}
+        nil -> {:ok, opts}
+      end
+    catch some, error ->
+        {:error, inspect({some, error})}
+    end
+  end
+
   defp to_ucs2(str) do
     str
       |> to_charlist
@@ -39,4 +63,13 @@ defmodule SMPPSend.OptionHelpers do
       |> to_string
   end
 
+  defp to_gsm(str) do
+    str
+      |> (fn(x) -> Codepagex.from_string!(x, "ETSI/GSM0338") end).()
+  end
+
+  defp to_latin1(str) do
+    str
+      |> (fn(x) -> Codepagex.from_string!(x, :iso_8859_1) end).()
+  end
 end
