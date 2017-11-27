@@ -23,7 +23,8 @@ defmodule Smppsend.Mixfile do
       {:smppex, "~> 2.0"},
       {:dye, "~> 0.4.0"},
       {:coverex, "~> 1.4.1", only: :test},
-      {:doppler, "~> 0.1.0", only: :test}
+      {:doppler, "~> 0.1.0", only: :test},
+      {:codepagex, "~> 0.1.4"}
     ]
   end
 

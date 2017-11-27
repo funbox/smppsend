@@ -46,6 +46,8 @@ defmodule SMPPSend do
 
     ucs2: :boolean,
     binary: :boolean,
+    gsm: :boolean,
+    latin1: :boolean,
 
     wait_dlrs: :integer,
     wait: :boolean
@@ -66,6 +68,8 @@ defmodule SMPPSend do
 
     ucs2: false,
     binary: false,
+    latin1: false,
+    gsm: false,
 
     wait: false
   ]
@@ -92,7 +96,7 @@ defmodule SMPPSend do
       &show_version/1,
       &validate_missing/1,
       &decode_hex_string/1,
-      &convert_to_ucs2/1,
+      &encode/1,
       &trap_exit/1,
       &bind/1,
       &send_messages/1,
@@ -157,7 +161,6 @@ defmodule SMPPSend do
     end
   end
 
-
   defp decode_hex_string(opts) do
     if opts[:binary] do
       case SMPPSend.OptionHelpers.decode_hex_string(opts, :short_message) do
@@ -175,20 +178,26 @@ defmodule SMPPSend do
     end
   end
 
-  defp convert_to_ucs2(opts) do
-    if opts[:ucs2] do
-      case SMPPSend.OptionHelpers.convert_to_ucs2(opts, :short_message) do
-        {:ok, new_opts} ->
-          tlvs = opts[:tlvs]
-          {:ok, message_payload_id} = SMPPEX.Protocol.TlvFormat.id_by_name(:message_payload)
-          case SMPPSend.OptionHelpers.convert_to_ucs2(tlvs, message_payload_id) do
-            {:ok, new_tlvs} -> {:ok, Keyword.put(new_opts, :tlvs, new_tlvs)}
-            {:error, error} -> {:error, "Failed to convert message_payload to ucs2: #{error}"}
-          end
-        {:error, error} -> {:error, "Failed to convert short_message to ucs2: #{error}"}
-      end
-    else
-      {:ok, opts}
+  defp encoding_function(opts) do
+    cond do
+      opts[:ucs2] -> {:ucs2, &SMPPSend.OptionHelpers.convert_to_ucs2/2}
+      opts[:gsm] -> {:gsm, &SMPPSend.OptionHelpers.convert_to_gsm/2}
+      opts[:latin1] -> {:latin1, &SMPPSend.OptionHelpers.convert_to_latin1/2}
+      true -> {:noenc, fn(opts, _) -> {:ok, opts} end}
+    end
+  end
+
+  defp encode(opts) do
+    {encoding_name, encoding_fn} = encoding_function(opts)
+    case encoding_fn.(opts, :short_message) do
+      {:ok, new_opts} ->
+        tlvs = opts[:tlvs]
+        {:ok, message_payload_id} = SMPPEX.Protocol.TlvFormat.id_by_name(:message_payload)
+        case encoding_fn.(tlvs, message_payload_id) do
+          {:ok, new_tlvs} -> {:ok, Keyword.put(new_opts, :tlvs, new_tlvs)}
+          {:error, error} -> {:error, "Failed to convert message_payload to #{encoding_name}: #{error}"}
+        end
+      {:error, error} -> {:error, "Failed to convert short_message to #{encoding_name}: #{error}"}
     end
   end
 
