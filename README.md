@@ -28,3 +28,7 @@ You can also download precompiled Linux-compatible binaries from [Releases](http
 See
 
     $ smppsend --help
+
+Sample usage
+
+    $ smppsend --submit-sm --source-addr test --destination-addr 71234567890 --source-addr-ton 5 --source-addr-npi 0 --dest-addr-ton 1 --dest-addr-npi 1 --data-coding 0 --host smppex.rubybox.ru --port 2775 --system-id testsid --password password --bind-mode trx --short-message "test" --wait
