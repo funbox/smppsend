@@ -12,7 +12,7 @@ Simple utility for testing SMSC connections. It allows to bind to SMSCs, send su
 
 If you want just to build `smppsend` executable for you current platform, just run
 
-    $ mix do deps.get,escript.build
+    $ mix do deps.get, escript.build
 
 If you want to make a Linux-compatible binary for specific versions of OTP platform
 (for example, OTP 19), run
