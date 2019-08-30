@@ -1,6 +1,6 @@
 FROM centos:centos6
 
-MAINTAINER Ilya Averyanov <ilya@averyanov.org>
+MAINTAINER Alex Mikka <a.mikka@fun-box.ru>
 
 ENV LANG=en_US.UTF-8
 
