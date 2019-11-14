@@ -28,6 +28,8 @@ Available options are:
 
   --wait                                Do not exit after sending submit_sm PDUs (and waiting for delivery reports if specified), but receive and display incoming PDUs infinitely
 
+  --tls                                 Use ranch_ssl transport
+
 UDH fields (3GPP TS 23.040):
 
   --udh-ref y<ref>

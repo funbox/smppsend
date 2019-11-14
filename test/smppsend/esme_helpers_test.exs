@@ -17,7 +17,7 @@ defmodule SMPPSend.ESMEHelpersTest do
     host = "somehost"
     port = 12345
 
-    Doppler.def(esme_mod, :start_link, fn(ref, passed_host, passed_port) ->
+    Doppler.def(esme_mod, :start_link, fn(ref, passed_host, passed_port, []) ->
       assert host == passed_host
       assert port == passed_port
       {{:ok, {:esme, ref}}, ref}
@@ -32,7 +32,7 @@ defmodule SMPPSend.ESMEHelpersTest do
       {[], st}
     end)
 
-    assert {:ok, {:esme, ref}} == ESMEHelpers.connect(host, port, bind_pdu, esme_mod)
+    assert {:ok, {:esme, ref}} == ESMEHelpers.connect(host, port, bind_pdu, [], esme_mod)
 
   end
 
@@ -45,11 +45,11 @@ defmodule SMPPSend.ESMEHelpersTest do
     host = "somehost"
     port = 12345
 
-    Doppler.def(esme_mod, :start_link, fn(ref, _, _) ->
+    Doppler.def(esme_mod, :start_link, fn(ref, _, _, _) ->
       {{:error, :econnrefused}, ref}
     end)
 
-    assert {:error, _} = ESMEHelpers.connect(host, port, bind_pdu, esme_mod)
+    assert {:error, _} = ESMEHelpers.connect(host, port, bind_pdu, [], esme_mod)
 
   end
 
@@ -62,7 +62,7 @@ defmodule SMPPSend.ESMEHelpersTest do
     host = "somehost"
     port = 12345
 
-    Doppler.def(esme_mod, :start_link, fn(ref, _, _) ->
+    Doppler.def(esme_mod, :start_link, fn(ref, _, _, _) ->
       {{:ok, {:esme, ref}}, ref}
     end)
     Doppler.def(esme_mod, :request, fn(ref, _, _) ->
@@ -73,7 +73,7 @@ defmodule SMPPSend.ESMEHelpersTest do
       {[], ref}
     end)
 
-    assert {:error, _} = ESMEHelpers.connect(host, port, bind_pdu, esme_mod)
+    assert {:error, _} = ESMEHelpers.connect(host, port, bind_pdu, [], esme_mod)
 
   end
 
@@ -86,14 +86,14 @@ defmodule SMPPSend.ESMEHelpersTest do
     host = "somehost"
     port = 12345
 
-    Doppler.def(esme_mod, :start_link, fn(ref, _, _) ->
+    Doppler.def(esme_mod, :start_link, fn(ref, _, _, _) ->
       {{:ok, {:esme, ref}}, ref}
     end)
     Doppler.def(esme_mod, :request, fn(ref, _, _) ->
       {:timeout, ref}
     end)
 
-    assert {:error, _} = ESMEHelpers.connect(host, port, bind_pdu, esme_mod)
+    assert {:error, _} = ESMEHelpers.connect(host, port, bind_pdu, [], esme_mod)
 
   end
 
@@ -106,14 +106,14 @@ defmodule SMPPSend.ESMEHelpersTest do
     host = "somehost"
     port = 12345
 
-    Doppler.def(esme_mod, :start_link, fn(ref, _, _) ->
+    Doppler.def(esme_mod, :start_link, fn(ref, _, _, _) ->
       {{:ok, {:esme, ref}}, ref}
     end)
     Doppler.def(esme_mod, :request, fn(ref, _, _) ->
       {{:error, "err"}, ref}
     end)
 
-    assert {:error, _} = ESMEHelpers.connect(host, port, bind_pdu, esme_mod)
+    assert {:error, _} = ESMEHelpers.connect(host, port, bind_pdu, [], esme_mod)
 
   end
 
@@ -126,14 +126,14 @@ defmodule SMPPSend.ESMEHelpersTest do
     host = "somehost"
     port = 12345
 
-    Doppler.def(esme_mod, :start_link, fn(ref, _, _) ->
+    Doppler.def(esme_mod, :start_link, fn(ref, _, _, _) ->
       {{:ok, {:esme, ref}}, ref}
     end)
     Doppler.def(esme_mod, :request, fn(ref, _, _) ->
       {:stop, ref}
     end)
 
-    assert {:error, _} = ESMEHelpers.connect(host, port, bind_pdu, esme_mod)
+    assert {:error, _} = ESMEHelpers.connect(host, port, bind_pdu, [], esme_mod)
 
   end
 
