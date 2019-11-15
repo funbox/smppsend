@@ -50,7 +50,9 @@ defmodule SMPPSend do
     latin1: :boolean,
 
     wait_dlrs: :integer,
-    wait: :boolean
+    wait: :boolean,
+
+    tls: :boolean
   ]
 
   @defaults [
@@ -212,11 +214,22 @@ defmodule SMPPSend do
 
     case SMPPSend.PduHelpers.bind(opts) do
       {:ok, bind} ->
-        case SMPPSend.ESMEHelpers.connect(host, port, bind) do
+        case SMPPSend.ESMEHelpers.connect(host, port, bind, session_opts(opts)) do
           {:ok, esme} -> {:ok, {esme, opts}}
           {:error, error} -> {:error, "Connecting SMSC failed: #{inspect error}"}
         end
       {:error, _error} = error -> error
+    end
+  end
+
+  defp session_opts(opts) do
+    session_opts = []
+
+    if opts[:tls] do
+      session_opts
+      |> Keyword.put(:transport, :ranch_ssl)
+    else
+      session_opts
     end
   end
 

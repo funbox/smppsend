@@ -6,10 +6,10 @@ defmodule SMPPSend.ESMEHelpers do
 
   require Logger
 
-  def connect(host, port, bind_pdu, esme_mod \\ SMPPEX.ESME.Sync) do
+  def connect(host, port, bind_pdu, session_opts \\ [], esme_mod \\ SMPPEX.ESME.Sync) do
     Logger.info "Connecting to #{host}:#{port}"
 
-    case esme_mod.start_link(host, port) do
+    case esme_mod.start_link(host, port, session_opts) do
       {:ok, esme} ->
         Logger.info "Connected"
         bind(esme, bind_pdu, esme_mod)
