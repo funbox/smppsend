@@ -52,7 +52,9 @@ defmodule SMPPSend do
     wait_dlrs: :integer,
     wait: :boolean,
 
-    tls: :boolean
+    tls: :boolean,
+
+    sn: :integer
   ]
 
   @defaults [
@@ -73,7 +75,9 @@ defmodule SMPPSend do
     latin1: false,
     gsm: false,
 
-    wait: false
+    wait: false,
+
+    sn: 0
   ]
 
   @required [
@@ -225,11 +229,22 @@ defmodule SMPPSend do
   defp session_opts(opts) do
     session_opts = []
 
+    session_opts
+    |> Keyword.put(:transport, session_transport(opts))
+    |> Keyword.put(:esme_opts, esme_opts(opts))
+  end
+
+  defp esme_opts(opts) do
+    esme_opts = []
+
+    Keyword.put(esme_opts, :sequence_number, Keyword.get(opts, :sn))
+  end
+
+  defp session_transport(opts) do
     if opts[:tls] do
-      session_opts
-      |> Keyword.put(:transport, :ranch_ssl)
+      :ranch_ssl
     else
-      session_opts
+      :ranch_tcp
     end
   end
 

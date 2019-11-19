@@ -30,6 +30,8 @@ Available options are:
 
   --tls                                 Use ranch_ssl transport
 
+  --sn                                  Initial session sequence number
+
 UDH fields (3GPP TS 23.040):
 
   --udh-ref y<ref>
