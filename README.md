@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/savonarola/smppsend.svg?branch=master)](https://travis-ci.org/savonarola/smppsend)
+[![Build Status](https://travis-ci.org/funbox/smppsend.svg?branch=master)](https://travis-ci.org/funbox/smppsend)
 
 <a href="https://funbox.ru">
   <img src="http://funbox.ru/badges/sponsored_by_funbox.svg" alt="Sponsored by FunBox" width=250 />
@@ -21,7 +21,7 @@ If you want to make a Linux-compatible binary for specific versions of OTP platf
 
 You need [Docker](https://www.docker.com/) installed to build.
 
-You can also download precompiled Linux-compatible binaries from [Releases](https://github.com/savonarola/smppsend/releases) page.
+You can also download precompiled Linux-compatible binaries from [Releases](https://github.com/funbox/smppsend/releases) page.
 
 ## Usage
 
