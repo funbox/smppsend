@@ -103,6 +103,7 @@ defmodule SMPPSend.ESMEHelpers do
     case Pdu.command_name(pdu) do
       :deliver_sm ->
         receipted_message_id = Pdu.field(pdu, :receipted_message_id)
+        deliver_sm_resp(esme,pdu)
         handle_async_results(esme, rest_pdus, [ receipted_message_id | message_ids ])
       _ ->
         handle_async_results(esme, rest_pdus, message_ids)
@@ -143,4 +144,8 @@ defmodule SMPPSend.ESMEHelpers do
     end
   end
 
+  defp deliver_sm_resp(esme, pdu) do
+    resp = Factory.deliver_sm_resp |> Pdu.as_reply_to(pdu)
+    SMPPEX.Session.send_pdu(esme, resp)
+  end
 end
