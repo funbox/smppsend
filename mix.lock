@@ -1,7 +1,7 @@
 %{
   "agent": {:hex, :agent, "0.1.0", "463819be23aac571c45579d5ef7dd2155803ed885cd95e66f9550216847b96e9", [:rebar3], [], "hexpm"},
   "certifi": {:hex, :certifi, "2.0.0", "a0c0e475107135f76b8c1d5bc7efb33cd3815cb3cf3dea7aefdd174dabead064", [:rebar3], [], "hexpm"},
-  "codepagex": {:hex, :codepagex, "0.1.4", "dae3bc57e9334c324914b32ed61c0a30929fac3e73dc71fc611ed7eeb2dcb867", [:mix], [], "hexpm"},
+  "codepagex": {:hex, :codepagex, "0.1.6", "49110d09a25ee336a983281a48ef883da4c6190481e0b063afe2db481af6117e", [:mix], [], "hexpm"},
   "coverex": {:hex, :coverex, "1.4.15", "60fadf825a6c0439b79d1f98cdb54b6733cdd5cb1b35d15d56026c44ed15a5a8", [:mix], [{:hackney, "~> 1.5", [hex: :hackney, repo: "hexpm", optional: false]}, {:poison, "~> 1.5 or ~> 2.0 or ~> 3.0", [hex: :poison, repo: "hexpm", optional: false]}], "hexpm"},
   "doppler": {:hex, :doppler, "0.1.0", "398461a44b5d459df7b8c7c2fd72fc7e00f5a15cbacf7575593a61ef28f92d88", [:rebar3], [{:agent, "~> 0.1.0", [hex: :agent, repo: "hexpm", optional: false]}], "hexpm"},
   "dye": {:hex, :dye, "0.4.1", "e8d4b548fd17b441ebaaa53c823c29026bd17704bc9057304f15befb7e180df3", [:mix], [], "hexpm"},
