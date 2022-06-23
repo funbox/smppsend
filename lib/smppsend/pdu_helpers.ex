@@ -49,36 +49,50 @@ defmodule SMPPSend.PduHelpers do
       {:ok, mode} ->
         bind_fields = fields_from_opts(@bind_field_names, opts)
         {:ok, Factory.bind(mode, bind_fields)}
-      {:error, _error} = error -> error
+
+      {:error, _error} = error ->
+        error
     end
   end
 
-  def submit_sms(opts, udh_opts) when udh_opts == :custom_udh or udh_opts == :auto_split or udh_opts == :none do
+  def submit_sms(opts, udh_opts)
+      when udh_opts == :custom_udh or udh_opts == :auto_split or udh_opts == :none do
     case esm_class_and_messages(opts, udh_opts) do
       {:ok, {esm_class, short_messages}} ->
         {:ok, command_id} = CommandNames.id_by_name(:submit_sm)
         submit_sm_fields = fields_from_opts(@submit_sm_field_names, opts)
-        {:ok, short_messages |> Enum.map(fn(message) ->
-            mandatory = submit_sm_fields
-              |> Map.put(:short_message, message)
-              |> Map.put(:esm_class, esm_class)
-            optional = tlvs(opts[:tlvs])
-            Pdu.new(command_id, mandatory, optional)
-          end)
-        }
-      {:error, _error} = error -> error
+
+        {:ok,
+         short_messages
+         |> Enum.map(fn message ->
+           mandatory =
+             submit_sm_fields
+             |> Map.put(:short_message, message)
+             |> Map.put(:esm_class, esm_class)
+
+           optional = tlvs(opts[:tlvs])
+           Pdu.new(command_id, mandatory, optional)
+         end)}
+
+      {:error, _error} = error ->
+        error
     end
   end
 
   defp bind_mode(mode) do
     case Map.has_key?(@bind_modes, mode) do
-      true -> {:ok, @bind_modes[mode]}
-      false -> {:error, "Bad bind mode: #{inspect mode}, only following modes allowed: #{@bind_modes |> Map.keys |> Enum.join(", ")}"}
+      true ->
+        {:ok, @bind_modes[mode]}
+
+      false ->
+        {:error,
+         "Bad bind mode: #{inspect(mode)}, only following modes allowed: #{@bind_modes |> Map.keys() |> Enum.join(", ")}"}
     end
   end
 
   defp fields_from_opts(field_list, opts) do
-    field_list |> List.foldl(%{}, fn(key, fields) ->
+    field_list
+    |> List.foldl(%{}, fn key, fields ->
       Map.put(fields, key, opts[key])
     end)
   end
@@ -90,16 +104,20 @@ defmodule SMPPSend.PduHelpers do
   defp esm_class_and_messages(opts, :custom_udh) do
     original_short_message = opts[:short_message]
     original_esm_class = opts[:esm_class]
+
     part_info = {
       opts[:udh_ref],
       opts[:udh_total_parts],
       opts[:udh_part_num]
     }
+
     case SMPPEX.Pdu.Multipart.prepend_message_with_part_info(part_info, original_short_message) do
       {:ok, data} ->
         esm_class = original_esm_class ||| @esm_class_gsm_udhi
         {:ok, {esm_class, [data]}}
-      {:error, _} = error -> error
+
+      {:error, _} = error ->
+        error
     end
   end
 
@@ -107,20 +125,29 @@ defmodule SMPPSend.PduHelpers do
     split_max_bytes = opts[:split_max_bytes]
     original_short_message = opts[:short_message]
     original_esm_class = opts[:esm_class]
-    case SMPPEX.Pdu.Multipart.split_message(opts[:udh_ref], original_short_message, split_max_bytes) do
+
+    case SMPPEX.Pdu.Multipart.split_message(
+           opts[:udh_ref],
+           original_short_message,
+           split_max_bytes
+         ) do
       {:ok, :split, messages} ->
         esm_class = original_esm_class ||| @esm_class_gsm_udhi
         {:ok, {esm_class, messages}}
+
       {:ok, :unsplit} ->
         {:ok, {original_esm_class, [original_short_message]}}
+
       {:error, error} ->
-        {:error, "Can't split message: #{inspect error}"}
+        {:error, "Can't split message: #{inspect(error)}"}
     end
   end
 
   defp tlvs(nil), do: tlvs([])
+
   defp tlvs(tlv_list) do
-    tlv_list |> List.foldl(%{}, fn({tlv_id, tlv_value}, tlv_map) ->
+    tlv_list
+    |> List.foldl(%{}, fn {tlv_id, tlv_value}, tlv_map ->
       Map.put(tlv_map, tlv_id, tlv_value)
     end)
   end

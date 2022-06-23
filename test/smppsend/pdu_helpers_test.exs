@@ -37,42 +37,51 @@ defmodule SMPPSend.PduHelpersTest do
   @tlvs [{0x1234, "foo"}]
 
   defp check_pdu_fields(pdu, fields) do
-    fields |> Keyword.keys |> Enum.each(fn(name) ->
+    fields
+    |> Keyword.keys()
+    |> Enum.each(fn name ->
       assert fields[name] == Pdu.field(pdu, name)
     end)
   end
+
   defp check_pdu_tlvs(pdu, fields) do
-    fields |> Enum.each(fn({id, value}) ->
+    fields
+    |> Enum.each(fn {id, value} ->
       assert value == Pdu.optional_field(pdu, id)
     end)
   end
 
   test "bind" do
-    opts = @bind_common_opts ++ [
-      bind_mode: "tx"
-    ]
+    opts =
+      @bind_common_opts ++
+        [
+          bind_mode: "tx"
+        ]
 
     assert {:ok, pdu} = bind(opts)
 
     assert Pdu.command_name(pdu) == :bind_transmitter
     check_pdu_fields(pdu, @bind_common_opts)
-
   end
 
   test "bind: bad mode" do
-    opts = @bind_common_opts ++ [
-      bind_mode: "txx"
-    ]
+    opts =
+      @bind_common_opts ++
+        [
+          bind_mode: "txx"
+        ]
 
     assert {:error, _} = bind(opts)
   end
 
   test "submit_sms: without udh" do
-    opts = @submit_sm_common_opts ++ [
-      tlvs: @tlvs,
-      short_message: "foo",
-      esm_class: 0
-    ]
+    opts =
+      @submit_sm_common_opts ++
+        [
+          tlvs: @tlvs,
+          short_message: "foo",
+          esm_class: 0
+        ]
 
     assert {:ok, [pdu]} = submit_sms(opts, :none)
 
@@ -84,14 +93,16 @@ defmodule SMPPSend.PduHelpersTest do
   end
 
   test "submit_sms: with custom udh" do
-    opts = @submit_sm_common_opts ++ [
-      tlvs: @tlvs,
-      short_message: <<100, 101>>,
-      esm_class: 123,
-      udh_ref: 123,
-      udh_total_parts: 2,
-      udh_part_num: 1
-    ]
+    opts =
+      @submit_sm_common_opts ++
+        [
+          tlvs: @tlvs,
+          short_message: <<100, 101>>,
+          esm_class: 123,
+          udh_ref: 123,
+          udh_total_parts: 2,
+          udh_part_num: 1
+        ]
 
     assert {:ok, [pdu]} = submit_sms(opts, :custom_udh)
 
@@ -103,13 +114,15 @@ defmodule SMPPSend.PduHelpersTest do
   end
 
   test "submit_sms: with auto_split" do
-    opts = @submit_sm_common_opts ++ [
-      tlvs: @tlvs,
-      short_message: "hellohellohellohellohellohellohello",
-      esm_class: 123,
-      split_max_bytes: 25,
-      udh_ref: 123,
-    ]
+    opts =
+      @submit_sm_common_opts ++
+        [
+          tlvs: @tlvs,
+          short_message: "hellohellohellohellohellohellohello",
+          esm_class: 123,
+          split_max_bytes: 25,
+          udh_ref: 123
+        ]
 
     assert {:ok, [pdu1, pdu2]} = submit_sms(opts, :auto_split)
 
@@ -126,16 +139,17 @@ defmodule SMPPSend.PduHelpersTest do
   end
 
   test "submit_sms: udh fail" do
-    opts = @submit_sm_common_opts ++ [
-      tlvs: @tlvs,
-      short_message: "hellohellohellohellohellohellohello",
-      esm_class: 123,
-      split_max_bytes: 25,
-      udh_ref: "foobarbazz",
-    ]
+    opts =
+      @submit_sm_common_opts ++
+        [
+          tlvs: @tlvs,
+          short_message: "hellohellohellohellohellohellohello",
+          esm_class: 123,
+          split_max_bytes: 25,
+          udh_ref: "foobarbazz"
+        ]
 
     assert {:error, _} = submit_sms(opts, :auto_split)
     assert {:error, _} = submit_sms(opts, :custom_udh)
   end
-
 end

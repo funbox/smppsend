@@ -1,13 +1,16 @@
 defmodule SMPPSend.OptionHelpers do
-
   def find_unknown(opts, known_list) do
-    opts |> Keyword.keys |> Enum.filter(fn(key) ->
+    opts
+    |> Keyword.keys()
+    |> Enum.filter(fn key ->
       not Enum.any?(known_list, &(&1 == key))
     end)
   end
 
   def set_defaults(opts, defaults) do
-    defaults |> Keyword.keys |> List.foldl(opts, fn(key, opts) ->
+    defaults
+    |> Keyword.keys()
+    |> List.foldl(opts, fn key, opts ->
       case Keyword.has_key?(opts, key) do
         true -> opts
         false -> Keyword.put(opts, key, defaults[key])
@@ -16,7 +19,7 @@ defmodule SMPPSend.OptionHelpers do
   end
 
   def find_missing(opts, required_list) do
-    required_list |> Enum.filter(fn(name) -> not Keyword.has_key?(opts, name) end)
+    required_list |> Enum.filter(fn name -> not Keyword.has_key?(opts, name) end)
   end
 
   def decode_hex_string(opts, key) do
@@ -40,18 +43,21 @@ defmodule SMPPSend.OptionHelpers do
       case List.keyfind(opts, key, 0) do
         {^key, value} ->
           {:ok, List.keyreplace(opts, key, 0, {key, modifier.(value)})}
-        nil -> {:ok, opts}
+
+        nil ->
+          {:ok, opts}
       end
-    catch some, error ->
-      {:error, inspect({some, error})}
+    catch
+      some, error ->
+        {:error, inspect({some, error})}
     end
   end
 
   defp to_ucs2(str) do
     str
-      |> to_char_list
-      |> :xmerl_ucs.to_ucs2be
-      |> :erlang.list_to_binary
+    |> to_char_list
+    |> :xmerl_ucs.to_ucs2be()
+    |> :erlang.list_to_binary()
   end
 
   defp to_bytes(hex_string) do

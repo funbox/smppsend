@@ -1,6 +1,6 @@
 defmodule SMPPSend.Version do
   def version do
-    Application.loaded_applications
+    Application.loaded_applications()
     |> List.keyfind(:smppsend, 0)
     |> case do
       {_, _, vsn} -> vsn
