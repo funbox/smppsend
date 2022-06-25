@@ -149,7 +149,12 @@ defmodule SMPPSend.ESMEHelpers do
     end
   end
 
-  defp handle_async_results(esme, [{:resp, pdu, _original_pdu} | rest_pdus], esme_mod, message_ids) do
+  defp handle_async_results(
+         esme,
+         [{:resp, pdu, _original_pdu} | rest_pdus],
+         esme_mod,
+         message_ids
+       ) do
     Logger.info("Response received:#{PP.format(pdu)}")
     handle_async_results(esme, rest_pdus, esme_mod, message_ids)
   end

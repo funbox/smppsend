@@ -1,10 +1,11 @@
 defmodule SMPPSend.ESMEMod do
   alias SMPPEX.Pdu
 
-  @callback start_link(host :: term, port :: non_neg_integer, opts :: Keyword.t()) :: GenServer.on_start()
+  @callback start_link(host :: term, port :: non_neg_integer, opts :: Keyword.t()) ::
+              GenServer.on_start()
 
   @callback request(esme :: pid, pdu :: Pdu.t()) ::
-          {:ok, resp :: Pdu.t()} | :timeout | :stop | {:error, reason :: term}
+              {:ok, resp :: Pdu.t()} | :timeout | :stop | {:error, reason :: term}
 
   @type awaited ::
           {:pdu, pdu :: Pdu.t()}
