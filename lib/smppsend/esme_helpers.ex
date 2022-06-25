@@ -6,7 +6,9 @@ defmodule SMPPSend.ESMEHelpers do
 
   require Logger
 
-  def connect(host, port, bind_pdu, session_opts \\ [], esme_mod \\ SMPPEX.ESME.Sync) do
+  @wait_timeout 5000
+
+  def connect(host, port, bind_pdu, session_opts \\ [], esme_mod \\ SMPPSend.ESMESync) do
     Logger.info("Connecting to #{host}:#{port}")
 
     case esme_mod.start_link(host, port, session_opts) do
@@ -93,7 +95,7 @@ defmodule SMPPSend.ESMEHelpers do
         {:error, "timeout while waiting for dlrs"}
 
       {time, pdus} ->
-        receipted_message_ids = handle_async_results(esme, pdus)
+        receipted_message_ids = handle_async_results(esme, pdus, esme_mod)
 
         case message_ids -- receipted_message_ids do
           [] ->
@@ -116,7 +118,7 @@ defmodule SMPPSend.ESMEHelpers do
   def wait_infinitely(esme, esme_mod, next) do
     Logger.info("Waiting...")
 
-    case esme_mod.wait_for_pdus(esme) do
+    case esme_mod.wait_for_pdus(esme, @wait_timeout) do
       :stop ->
         {:error, "esme stopped"}
 
@@ -124,47 +126,47 @@ defmodule SMPPSend.ESMEHelpers do
         next.(esme, esme_mod, next)
 
       wait_result ->
-        handle_async_results(esme, wait_result)
+        handle_async_results(esme, wait_result, esme_mod)
         next.(esme, esme_mod, next)
     end
   end
 
-  defp handle_async_results(esme, pdus, message_ids \\ [])
+  defp handle_async_results(esme, pdus, esme_mod, message_ids \\ [])
 
-  defp handle_async_results(_esme, [], message_ids), do: message_ids
+  defp handle_async_results(_esme, [], _esme_mod, message_ids), do: message_ids
 
-  defp handle_async_results(esme, [{:pdu, pdu} | rest_pdus], message_ids) do
+  defp handle_async_results(esme, [{:pdu, pdu} | rest_pdus], esme_mod, message_ids) do
     Logger.info("Pdu received:#{PP.format(pdu)}")
 
     case Pdu.command_name(pdu) do
       :deliver_sm ->
         receipted_message_id = Pdu.field(pdu, :receipted_message_id)
-        deliver_sm_resp(esme, pdu)
-        handle_async_results(esme, rest_pdus, [receipted_message_id | message_ids])
+        deliver_sm_resp(esme, pdu, esme_mod)
+        handle_async_results(esme, rest_pdus, esme_mod, [receipted_message_id | message_ids])
 
       _ ->
-        handle_async_results(esme, rest_pdus, message_ids)
+        handle_async_results(esme, rest_pdus, esme_mod, message_ids)
     end
   end
 
-  defp handle_async_results(esme, [{:resp, pdu, _original_pdu} | rest_pdus], message_ids) do
+  defp handle_async_results(esme, [{:resp, pdu, _original_pdu} | rest_pdus], esme_mod, message_ids) do
     Logger.info("Response received:#{PP.format(pdu)}")
-    handle_async_results(esme, rest_pdus, message_ids)
+    handle_async_results(esme, rest_pdus, esme_mod, message_ids)
   end
 
-  defp handle_async_results(esme, [{:timeout, pdu} | rest_pdus], message_ids) do
+  defp handle_async_results(esme, [{:timeout, pdu} | rest_pdus], esme_mod, message_ids) do
     Logger.info("Pdu timeout:#{PP.format(pdu)}")
-    handle_async_results(esme, rest_pdus, message_ids)
+    handle_async_results(esme, rest_pdus, esme_mod, message_ids)
   end
 
-  defp handle_async_results(esme, [{:ok, pdu} | rest_pdus], message_ids) do
+  defp handle_async_results(esme, [{:ok, pdu} | rest_pdus], esme_mod, message_ids) do
     Logger.info("Pdu sent:#{PP.format(pdu)}")
-    handle_async_results(esme, rest_pdus, message_ids)
+    handle_async_results(esme, rest_pdus, esme_mod, message_ids)
   end
 
-  defp handle_async_results(esme, [{:error, pdu, error} | rest_pdus], message_ids) do
+  defp handle_async_results(esme, [{:error, pdu, error} | rest_pdus], esme_mod, message_ids) do
     Logger.info("Pdu send error(#{inspect(error)}):#{PP.format(pdu)}")
-    handle_async_results(esme, rest_pdus, message_ids)
+    handle_async_results(esme, rest_pdus, esme_mod, message_ids)
   end
 
   def unbind(esme, esme_mod \\ SMPPEX.ESME.Sync) do
@@ -188,8 +190,8 @@ defmodule SMPPSend.ESMEHelpers do
     end
   end
 
-  defp deliver_sm_resp(esme, pdu) do
+  defp deliver_sm_resp(esme, pdu, esme_mod) do
     resp = Factory.deliver_sm_resp() |> Pdu.as_reply_to(pdu)
-    SMPPEX.Session.send_pdu(esme, resp)
+    esme_mod.send_pdu(esme, resp)
   end
 end

@@ -1,7 +1,6 @@
 defmodule SMPPSend.ESMEHelpersTest do
   use ExUnit.Case
 
-  alias :doppler, as: Doppler
   alias :timer, as: Timer
   alias SMPPEX.Pdu
   alias SMPPEX.Pdu.Factory
@@ -9,165 +8,147 @@ defmodule SMPPSend.ESMEHelpersTest do
 
   test "connect" do
     ref = make_ref()
-    esme_mod = Doppler.start(ref)
-
     bind_pdu = Factory.bind_transmitter("system_id", "password")
     host = "somehost"
     port = 12345
 
-    Doppler.def(esme_mod, :start_link, fn ref, passed_host, passed_port, [] ->
+    MockESMESync
+    |> Mox.stub(:start_link, fn passed_host, passed_port, [] ->
       assert host == passed_host
       assert port == passed_port
-      {{:ok, {:esme, ref}}, ref}
+      {:ok, {:esme, ref}}
     end)
-
-    Doppler.def(esme_mod, :request, fn ref, {:esme, esme_ref}, passed_bind_pdu ->
+    |> Mox.stub(:request, fn {:esme, esme_ref}, passed_bind_pdu ->
       assert ref == esme_ref
       assert bind_pdu == passed_bind_pdu
       resp = Factory.bind_transmitter_resp(0, "system_id1")
-      {{:ok, resp}, ref}
+      {:ok, resp}
+    end)
+    |> Mox.stub(:pdus, fn _ ->
+      []
     end)
 
-    Doppler.def(esme_mod, :pdus, fn st, _ ->
-      {[], st}
-    end)
-
-    assert {:ok, {:esme, ref}} == ESMEHelpers.connect(host, port, bind_pdu, [], esme_mod)
+    assert {:ok, {:esme, ref}} == ESMEHelpers.connect(host, port, bind_pdu, [], MockESMESync)
   end
 
   test "connect fail" do
-    ref = make_ref()
-    esme_mod = Doppler.start(ref)
-
     bind_pdu = Factory.bind_transmitter("system_id", "password")
     host = "somehost"
     port = 12345
 
-    Doppler.def(esme_mod, :start_link, fn ref, _, _, _ ->
-      {{:error, :econnrefused}, ref}
+    MockESMESync
+    |> Mox.stub(:start_link, fn _, _, _ ->
+      {:error, :econnrefused}
     end)
 
-    assert {:error, _} = ESMEHelpers.connect(host, port, bind_pdu, [], esme_mod)
+    assert {:error, _} = ESMEHelpers.connect(host, port, bind_pdu, [], MockESMESync)
   end
 
   test "connect: bind fail" do
-    ref = make_ref()
-    esme_mod = Doppler.start(ref)
-
     bind_pdu = Factory.bind_transmitter("system_id", "password")
     host = "somehost"
     port = 12345
 
-    Doppler.def(esme_mod, :start_link, fn ref, _, _, _ ->
-      {{:ok, {:esme, ref}}, ref}
+    MockESMESync
+    |> Mox.stub(:start_link, fn _, _, _ ->
+      {:ok, :esme}
     end)
-
-    Doppler.def(esme_mod, :request, fn ref, _, _ ->
+    |> Mox.stub(:request, fn _, _ ->
       resp = Factory.bind_transmitter_resp(1)
-      {{:ok, resp}, ref}
+      {:ok, resp}
+    end)
+    |> Mox.stub(:pdus, fn _ ->
+      []
     end)
 
-    Doppler.def(esme_mod, :pdus, fn ref, _ ->
-      {[], ref}
-    end)
-
-    assert {:error, _} = ESMEHelpers.connect(host, port, bind_pdu, [], esme_mod)
+    assert {:error, _} = ESMEHelpers.connect(host, port, bind_pdu, [], MockESMESync)
   end
 
   test "connect: bind timeout" do
-    ref = make_ref()
-    esme_mod = Doppler.start(ref)
-
     bind_pdu = Factory.bind_transmitter("system_id", "password")
     host = "somehost"
     port = 12345
 
-    Doppler.def(esme_mod, :start_link, fn ref, _, _, _ ->
-      {{:ok, {:esme, ref}}, ref}
+    MockESMESync
+    |> Mox.stub(:start_link, fn _, _, _ ->
+      {:ok, :esme}
+    end)
+    |> Mox.stub(:request, fn _, _ ->
+      :timeout
     end)
 
-    Doppler.def(esme_mod, :request, fn ref, _, _ ->
-      {:timeout, ref}
-    end)
-
-    assert {:error, _} = ESMEHelpers.connect(host, port, bind_pdu, [], esme_mod)
+    assert {:error, _} = ESMEHelpers.connect(host, port, bind_pdu, [], MockESMESync)
   end
 
   test "connect: bind error" do
-    ref = make_ref()
-    esme_mod = Doppler.start(ref)
-
     bind_pdu = Factory.bind_transmitter("system_id", "password")
     host = "somehost"
     port = 12345
 
-    Doppler.def(esme_mod, :start_link, fn ref, _, _, _ ->
-      {{:ok, {:esme, ref}}, ref}
+    MockESMESync
+    |> Mox.stub(:start_link, fn _, _, _ ->
+      {:ok, :esme}
+    end)
+    |> Mox.stub(:request, fn _, _ ->
+      {:error, "err"}
     end)
 
-    Doppler.def(esme_mod, :request, fn ref, _, _ ->
-      {{:error, "err"}, ref}
-    end)
-
-    assert {:error, _} = ESMEHelpers.connect(host, port, bind_pdu, [], esme_mod)
+    assert {:error, _} = ESMEHelpers.connect(host, port, bind_pdu, [], MockESMESync)
   end
 
   test "connect: server close" do
-    ref = make_ref()
-    esme_mod = Doppler.start(ref)
-
     bind_pdu = Factory.bind_transmitter("system_id", "password")
     host = "somehost"
     port = 12345
 
-    Doppler.def(esme_mod, :start_link, fn ref, _, _, _ ->
-      {{:ok, {:esme, ref}}, ref}
+    MockESMESync
+    |> Mox.stub(:start_link, fn _, _, _ ->
+      {:ok, :esme}
+    end)
+    |> Mox.stub(:request, fn _, _ ->
+      :stop
     end)
 
-    Doppler.def(esme_mod, :request, fn ref, _, _ ->
-      {:stop, ref}
-    end)
-
-    assert {:error, _} = ESMEHelpers.connect(host, port, bind_pdu, [], esme_mod)
+    assert {:error, _} = ESMEHelpers.connect(host, port, bind_pdu, [], MockESMESync)
   end
 
   test "send_messages" do
-    esme_mod = Doppler.start(["1", "2"])
+    pid = SpawnList.start_link(["1", "2"])
 
     submit_sm1 = Factory.submit_sm({"from", 1, 1}, {"to", 1, 1}, "hello1")
     submit_sm2 = Factory.submit_sm({"from", 1, 1}, {"to", 1, 1}, "hello2")
 
-    Doppler.def(esme_mod, :request, fn [message_id | message_ids], :esme, _submit_sm ->
+    MockESMESync
+    |> Mox.stub(:request, fn :esme, _submit_sm ->
+      message_id = SpawnList.shift(pid)
       resp = Factory.submit_sm_resp(0, message_id)
-      {{:ok, resp}, message_ids}
+      {:ok, resp}
     end)
-
-    Doppler.def(esme_mod, :pdus, fn st, :esme ->
-      {[], st}
+    |> Mox.stub(:pdus, fn :esme ->
+      []
     end)
 
     assert {:ok, ["1", "2"]} ==
-             ESMEHelpers.send_messages(:esme, [submit_sm1, submit_sm2], esme_mod)
+             ESMEHelpers.send_messages(:esme, [submit_sm1, submit_sm2], MockESMESync)
   end
 
   test "send_messages: fail" do
-    esme_mod = Doppler.start([{"1", 0}, {"2", 1}])
+    pid = SpawnList.start_link([{"1", 0}, {"2", 1}])
 
     submit_sm1 = Factory.submit_sm({"from", 1, 1}, {"to", 1, 1}, "hello1")
     submit_sm2 = Factory.submit_sm({"from", 1, 1}, {"to", 1, 1}, "hello2")
 
-    Doppler.def(esme_mod, :request, fn [{message_id, command_status} | message_ids],
-                                       :esme,
-                                       _submit_sm ->
+    MockESMESync
+    |> Mox.stub(:request, fn :esme, _submit_sm ->
+      {message_id, command_status} = SpawnList.shift(pid)
       resp = Factory.submit_sm_resp(command_status, message_id)
-      {{:ok, resp}, message_ids}
+      {:ok, resp}
+    end)
+    |> Mox.stub(:pdus, fn :esme ->
+      []
     end)
 
-    Doppler.def(esme_mod, :pdus, fn st, :esme ->
-      {[], st}
-    end)
-
-    assert {:error, _} = ESMEHelpers.send_messages(:esme, [submit_sm1, submit_sm2], esme_mod)
+    assert {:error, _} = ESMEHelpers.send_messages(:esme, [submit_sm1, submit_sm2], MockESMESync)
   end
 
   test "wait_dlrs: empty" do
@@ -179,14 +160,19 @@ defmodule SMPPSend.ESMEHelpersTest do
     submit_sm2 = Factory.submit_sm({"from", 1, 1}, {"to", 1, 1}, "hello2")
     message_ids = ["1", "2"]
 
-    esme_mod = Doppler.start(message_ids)
+    pid = SpawnList.start_link(message_ids)
 
-    Doppler.def(esme_mod, :wait_for_pdus, fn [message_id | rest_message_ids], :esme, _timeout ->
+    MockESMESync
+    |> Mox.stub(:wait_for_pdus, fn :esme, _timeout ->
+      message_id = SpawnList.shift(pid)
       dlr = Factory.delivery_report(message_id, {"from", 1, 1}, {"to", 1, 1})
-      {[{:ok, submit_sm1}, {:ok, submit_sm2}, {:pdu, dlr}], rest_message_ids}
+      [{:ok, submit_sm1}, {:ok, submit_sm2}, {:pdu, dlr}]
+    end)
+    |> Mox.stub(:send_pdu, fn :esme, _pdu ->
+      :ok
     end)
 
-    assert :ok = ESMEHelpers.wait_dlrs(:esme, message_ids, 10, esme_mod)
+    assert :ok = ESMEHelpers.wait_dlrs(:esme, message_ids, 10, MockESMESync)
   end
 
   test "wait_dlrs: timeout" do
@@ -194,117 +180,121 @@ defmodule SMPPSend.ESMEHelpersTest do
     submit_sm2 = Factory.submit_sm({"from", 1, 1}, {"to", 1, 1}, "hello2")
     message_ids = [{"1", 10}, {"2", 10}]
 
-    esme_mod = Doppler.start(message_ids)
+    pid = SpawnList.start_link(message_ids)
 
-    Doppler.def(esme_mod, :wait_for_pdus, fn [{message_id, time_to_sleep} | rest_message_ids],
-                                             :esme,
-                                             _timeout ->
+    MockESMESync
+    |> Mox.stub(:wait_for_pdus, fn :esme, _timeout ->
+      {message_id, time_to_sleep} = SpawnList.shift(pid)
       dlr = Factory.delivery_report(message_id, {"from", 1, 1}, {"to", 1, 1})
       Timer.sleep(time_to_sleep)
-      {[{:ok, submit_sm1}, {:ok, submit_sm2}, {:pdu, dlr}], rest_message_ids}
+      [{:ok, submit_sm1}, {:ok, submit_sm2}, {:pdu, dlr}]
+    end)
+    |> Mox.stub(:send_pdu, fn :esme, _pdu ->
+      :ok
     end)
 
-    assert {:error, _} = ESMEHelpers.wait_dlrs(:esme, message_ids, 15, esme_mod)
+    assert {:error, _} = ESMEHelpers.wait_dlrs(:esme, message_ids, 15, MockESMESync)
   end
 
   test "wait_dlrs: mixed wait results" do
     message_ids = ["1", "2"]
 
-    esme_mod = Doppler.start(message_ids)
+    pid = SpawnList.start_link(message_ids)
 
-    Doppler.def(esme_mod, :wait_for_pdus, fn [message_id | rest_message_ids], :esme, _timeout ->
+    MockESMESync
+    |> Mox.stub(:wait_for_pdus, fn :esme, _timeout ->
+      message_id = SpawnList.shift(pid)
       ok = {:ok, Factory.submit_sm({"from", 1, 1}, {"to", 1, 1}, "hello1")}
       dlr = {:pdu, Factory.delivery_report(message_id, {"from", 1, 1}, {"to", 1, 1})}
       resp = {:resp, Factory.enquire_link_resp(), Factory.enquire_link()}
       error = {:error, Factory.enquire_link(), "oops"}
       timeout = {:timeout, Factory.enquire_link()}
-      {[ok, resp, error, timeout, dlr], rest_message_ids}
+      [ok, resp, error, timeout, dlr]
+    end)
+    |> Mox.stub(:send_pdu, fn :esme, _pdu ->
+      :ok
     end)
 
-    assert :ok = ESMEHelpers.wait_dlrs(:esme, message_ids, 10, esme_mod)
+    assert :ok = ESMEHelpers.wait_dlrs(:esme, message_ids, 10, MockESMESync)
   end
 
   test "wait_infinitely, ok" do
-    esme_mod = Doppler.start(nil)
-
     next = fn _, _, _ -> :ok end
 
-    Doppler.def(esme_mod, :wait_for_pdus, fn _, :esme ->
+    MockESMESync
+    |> Mox.stub(:wait_for_pdus, fn :esme, _timeout ->
       dlr = {:pdu, Factory.delivery_report("message_id", {"from", 1, 1}, {"to", 1, 1})}
       resp = {:resp, Factory.enquire_link_resp(), Factory.enquire_link()}
       error = {:error, Factory.enquire_link(), "oops"}
       timeout = {:timeout, Factory.enquire_link()}
-      {[resp, error, timeout, dlr], nil}
+      [resp, error, timeout, dlr]
+    end)
+    |> Mox.stub(:send_pdu, fn :esme, _pdu ->
+      :ok
     end)
 
-    assert :ok = ESMEHelpers.wait_infinitely(:esme, esme_mod, next)
+    assert :ok = ESMEHelpers.wait_infinitely(:esme, MockESMESync, next)
   end
 
   test "wait_infinitely, stop" do
-    esme_mod = Doppler.start(nil)
-
     next = fn _, _, _ -> :ok end
 
-    Doppler.def(esme_mod, :wait_for_pdus, fn _, :esme ->
-      {:stop, nil}
+    MockESMESync
+    |> Mox.stub(:wait_for_pdus, fn :esme, _timeout ->
+      :stop
     end)
 
-    assert {:error, _} = ESMEHelpers.wait_infinitely(:esme, esme_mod, next)
+    assert {:error, _} = ESMEHelpers.wait_infinitely(:esme, MockESMESync, next)
   end
 
   test "wait_infinitely, timeout" do
-    esme_mod = Doppler.start(nil)
-
     next = fn _, _, _ -> :ok end
 
-    Doppler.def(esme_mod, :wait_for_pdus, fn _, :esme ->
-      {:timeout, nil}
+    MockESMESync
+    |> Mox.stub(:wait_for_pdus, fn :esme, _timeout ->
+      :timeout
     end)
 
-    assert :ok = ESMEHelpers.wait_infinitely(:esme, esme_mod, next)
+    assert :ok = ESMEHelpers.wait_infinitely(:esme, MockESMESync, next)
   end
 
   test "unbind, ok" do
-    esme_mod = Doppler.start(nil)
-
-    Doppler.def(esme_mod, :request, fn st, :esme, unbind_pdu ->
+    MockESMESync
+    |> Mox.stub(:request, fn :esme, unbind_pdu ->
       assert Pdu.command_name(unbind_pdu) == :unbind
-      {{:ok, Factory.unbind_resp()}, st}
+      {:ok, Factory.unbind_resp()}
     end)
 
-    assert :ok = ESMEHelpers.unbind(:esme, esme_mod)
+    assert :ok = ESMEHelpers.unbind(:esme, MockESMESync)
   end
 
   test "unbind, timeout" do
-    esme_mod = Doppler.start(nil)
-
-    Doppler.def(esme_mod, :request, fn st, :esme, unbind_pdu ->
+    MockESMESync
+    |> Mox.stub(:request, fn :esme, unbind_pdu ->
       assert Pdu.command_name(unbind_pdu) == :unbind
-      {:timeout, st}
+      :timeout
     end)
 
-    assert {:error, _} = ESMEHelpers.unbind(:esme, esme_mod)
+    assert {:error, _} = ESMEHelpers.unbind(:esme, MockESMESync)
   end
 
   test "unbind, stop" do
-    esme_mod = Doppler.start(nil)
-
-    Doppler.def(esme_mod, :request, fn st, :esme, unbind_pdu ->
+    MockESMESync
+    |> Mox.stub(:request, fn :esme, unbind_pdu ->
       assert Pdu.command_name(unbind_pdu) == :unbind
-      {:stop, st}
+      :stop
     end)
 
-    assert {:error, _} = ESMEHelpers.unbind(:esme, esme_mod)
+    assert {:error, _} = ESMEHelpers.unbind(:esme, MockESMESync)
   end
 
   test "unbind, error" do
-    esme_mod = Doppler.start(nil)
-
-    Doppler.def(esme_mod, :request, fn st, :esme, unbind_pdu ->
+    MockESMESync
+    |> Mox.stub(:request, fn :esme, unbind_pdu ->
       assert Pdu.command_name(unbind_pdu) == :unbind
-      {{:error, :ooops}, st}
+      {:error, :ooops}
     end)
 
-    assert {:error, _} = ESMEHelpers.unbind(:esme, esme_mod)
+    assert {:error, _} = ESMEHelpers.unbind(:esme, MockESMESync)
   end
 end

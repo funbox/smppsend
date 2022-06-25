@@ -55,7 +55,7 @@ defmodule SMPPSend.OptionHelpers do
 
   defp to_ucs2(str) do
     str
-    |> to_char_list
+    |> to_charlist
     |> :xmerl_ucs.to_ucs2be()
     |> :erlang.list_to_binary()
   end

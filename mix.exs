@@ -8,6 +8,7 @@ defmodule Smppsend.Mixfile do
       elixir: "~> 1.5",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
+      elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps(),
       escript: escript(),
       test_coverage: [tool: Coverex.Task]
@@ -15,15 +16,21 @@ defmodule Smppsend.Mixfile do
   end
 
   def application do
-    [applications: [:logger, :smppex]]
+    [
+      extra_applications: [:logger, :runtime_tools, :xmerl]
+    ]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
+
 
   defp deps do
     [
       {:smppex, "~> 2.0"},
       {:dye, "~> 0.4.0"},
       {:coverex, "~> 1.4.1", only: :test},
-      {:doppler, "~> 0.1.0", only: :test},
+      {:mox, "~> 1.0", only: :test},
       {:codepagex, "~> 0.1.6"}
     ]
   end
