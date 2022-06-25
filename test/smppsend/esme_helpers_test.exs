@@ -7,9 +7,7 @@ defmodule SMPPSend.ESMEHelpersTest do
   alias SMPPEX.Pdu.Factory
   alias SMPPSend.ESMEHelpers
 
-
   test "connect" do
-
     ref = make_ref()
     esme_mod = Doppler.start(ref)
 
@@ -17,27 +15,27 @@ defmodule SMPPSend.ESMEHelpersTest do
     host = "somehost"
     port = 12345
 
-    Doppler.def(esme_mod, :start_link, fn(ref, passed_host, passed_port, []) ->
+    Doppler.def(esme_mod, :start_link, fn ref, passed_host, passed_port, [] ->
       assert host == passed_host
       assert port == passed_port
       {{:ok, {:esme, ref}}, ref}
     end)
-    Doppler.def(esme_mod, :request, fn(ref, {:esme, esme_ref}, passed_bind_pdu) ->
+
+    Doppler.def(esme_mod, :request, fn ref, {:esme, esme_ref}, passed_bind_pdu ->
       assert ref == esme_ref
       assert bind_pdu == passed_bind_pdu
       resp = Factory.bind_transmitter_resp(0, "system_id1")
       {{:ok, resp}, ref}
     end)
-    Doppler.def(esme_mod, :pdus, fn(st, _) ->
+
+    Doppler.def(esme_mod, :pdus, fn st, _ ->
       {[], st}
     end)
 
     assert {:ok, {:esme, ref}} == ESMEHelpers.connect(host, port, bind_pdu, [], esme_mod)
-
   end
 
   test "connect fail" do
-
     ref = make_ref()
     esme_mod = Doppler.start(ref)
 
@@ -45,16 +43,14 @@ defmodule SMPPSend.ESMEHelpersTest do
     host = "somehost"
     port = 12345
 
-    Doppler.def(esme_mod, :start_link, fn(ref, _, _, _) ->
+    Doppler.def(esme_mod, :start_link, fn ref, _, _, _ ->
       {{:error, :econnrefused}, ref}
     end)
 
     assert {:error, _} = ESMEHelpers.connect(host, port, bind_pdu, [], esme_mod)
-
   end
 
   test "connect: bind fail" do
-
     ref = make_ref()
     esme_mod = Doppler.start(ref)
 
@@ -62,23 +58,23 @@ defmodule SMPPSend.ESMEHelpersTest do
     host = "somehost"
     port = 12345
 
-    Doppler.def(esme_mod, :start_link, fn(ref, _, _, _) ->
+    Doppler.def(esme_mod, :start_link, fn ref, _, _, _ ->
       {{:ok, {:esme, ref}}, ref}
     end)
-    Doppler.def(esme_mod, :request, fn(ref, _, _) ->
+
+    Doppler.def(esme_mod, :request, fn ref, _, _ ->
       resp = Factory.bind_transmitter_resp(1)
       {{:ok, resp}, ref}
     end)
-    Doppler.def(esme_mod, :pdus, fn(ref, _) ->
+
+    Doppler.def(esme_mod, :pdus, fn ref, _ ->
       {[], ref}
     end)
 
     assert {:error, _} = ESMEHelpers.connect(host, port, bind_pdu, [], esme_mod)
-
   end
 
   test "connect: bind timeout" do
-
     ref = make_ref()
     esme_mod = Doppler.start(ref)
 
@@ -86,19 +82,18 @@ defmodule SMPPSend.ESMEHelpersTest do
     host = "somehost"
     port = 12345
 
-    Doppler.def(esme_mod, :start_link, fn(ref, _, _, _) ->
+    Doppler.def(esme_mod, :start_link, fn ref, _, _, _ ->
       {{:ok, {:esme, ref}}, ref}
     end)
-    Doppler.def(esme_mod, :request, fn(ref, _, _) ->
+
+    Doppler.def(esme_mod, :request, fn ref, _, _ ->
       {:timeout, ref}
     end)
 
     assert {:error, _} = ESMEHelpers.connect(host, port, bind_pdu, [], esme_mod)
-
   end
 
   test "connect: bind error" do
-
     ref = make_ref()
     esme_mod = Doppler.start(ref)
 
@@ -106,19 +101,18 @@ defmodule SMPPSend.ESMEHelpersTest do
     host = "somehost"
     port = 12345
 
-    Doppler.def(esme_mod, :start_link, fn(ref, _, _, _) ->
+    Doppler.def(esme_mod, :start_link, fn ref, _, _, _ ->
       {{:ok, {:esme, ref}}, ref}
     end)
-    Doppler.def(esme_mod, :request, fn(ref, _, _) ->
+
+    Doppler.def(esme_mod, :request, fn ref, _, _ ->
       {{:error, "err"}, ref}
     end)
 
     assert {:error, _} = ESMEHelpers.connect(host, port, bind_pdu, [], esme_mod)
-
   end
 
   test "connect: server close" do
-
     ref = make_ref()
     esme_mod = Doppler.start(ref)
 
@@ -126,165 +120,156 @@ defmodule SMPPSend.ESMEHelpersTest do
     host = "somehost"
     port = 12345
 
-    Doppler.def(esme_mod, :start_link, fn(ref, _, _, _) ->
+    Doppler.def(esme_mod, :start_link, fn ref, _, _, _ ->
       {{:ok, {:esme, ref}}, ref}
     end)
-    Doppler.def(esme_mod, :request, fn(ref, _, _) ->
+
+    Doppler.def(esme_mod, :request, fn ref, _, _ ->
       {:stop, ref}
     end)
 
     assert {:error, _} = ESMEHelpers.connect(host, port, bind_pdu, [], esme_mod)
-
   end
 
   test "send_messages" do
-
     esme_mod = Doppler.start(["1", "2"])
 
     submit_sm1 = Factory.submit_sm({"from", 1, 1}, {"to", 1, 1}, "hello1")
     submit_sm2 = Factory.submit_sm({"from", 1, 1}, {"to", 1, 1}, "hello2")
 
-    Doppler.def(esme_mod, :request, fn([message_id | message_ids], :esme, _submit_sm) ->
+    Doppler.def(esme_mod, :request, fn [message_id | message_ids], :esme, _submit_sm ->
       resp = Factory.submit_sm_resp(0, message_id)
       {{:ok, resp}, message_ids}
     end)
-    Doppler.def(esme_mod, :pdus, fn(st, :esme) ->
+
+    Doppler.def(esme_mod, :pdus, fn st, :esme ->
       {[], st}
     end)
 
-    assert {:ok, ["1", "2"]} == ESMEHelpers.send_messages(:esme, [submit_sm1, submit_sm2], esme_mod)
-
+    assert {:ok, ["1", "2"]} ==
+             ESMEHelpers.send_messages(:esme, [submit_sm1, submit_sm2], esme_mod)
   end
 
   test "send_messages: fail" do
-
-    esme_mod = Doppler.start([{"1",0}, {"2",1}])
+    esme_mod = Doppler.start([{"1", 0}, {"2", 1}])
 
     submit_sm1 = Factory.submit_sm({"from", 1, 1}, {"to", 1, 1}, "hello1")
     submit_sm2 = Factory.submit_sm({"from", 1, 1}, {"to", 1, 1}, "hello2")
 
-    Doppler.def(esme_mod, :request, fn([{message_id, command_status} | message_ids], :esme, _submit_sm) ->
+    Doppler.def(esme_mod, :request, fn [{message_id, command_status} | message_ids],
+                                       :esme,
+                                       _submit_sm ->
       resp = Factory.submit_sm_resp(command_status, message_id)
       {{:ok, resp}, message_ids}
     end)
-    Doppler.def(esme_mod, :pdus, fn(st, :esme) ->
+
+    Doppler.def(esme_mod, :pdus, fn st, :esme ->
       {[], st}
     end)
 
     assert {:error, _} = ESMEHelpers.send_messages(:esme, [submit_sm1, submit_sm2], esme_mod)
-
   end
 
   test "wait_dlrs: empty" do
-
     assert :ok == ESMEHelpers.wait_dlrs(:esme, [], 10)
-
   end
 
   test "wait_dlrs: success" do
-
     submit_sm1 = Factory.submit_sm({"from", 1, 1}, {"to", 1, 1}, "hello1")
     submit_sm2 = Factory.submit_sm({"from", 1, 1}, {"to", 1, 1}, "hello2")
     message_ids = ["1", "2"]
 
     esme_mod = Doppler.start(message_ids)
 
-    Doppler.def(esme_mod, :wait_for_pdus, fn([message_id | rest_message_ids], :esme, _timeout) ->
+    Doppler.def(esme_mod, :wait_for_pdus, fn [message_id | rest_message_ids], :esme, _timeout ->
       dlr = Factory.delivery_report(message_id, {"from", 1, 1}, {"to", 1, 1})
       {[{:ok, submit_sm1}, {:ok, submit_sm2}, {:pdu, dlr}], rest_message_ids}
     end)
 
     assert :ok = ESMEHelpers.wait_dlrs(:esme, message_ids, 10, esme_mod)
-
   end
 
   test "wait_dlrs: timeout" do
-
     submit_sm1 = Factory.submit_sm({"from", 1, 1}, {"to", 1, 1}, "hello1")
     submit_sm2 = Factory.submit_sm({"from", 1, 1}, {"to", 1, 1}, "hello2")
     message_ids = [{"1", 10}, {"2", 10}]
 
     esme_mod = Doppler.start(message_ids)
 
-    Doppler.def(esme_mod, :wait_for_pdus, fn([{message_id, time_to_sleep} | rest_message_ids], :esme, _timeout) ->
+    Doppler.def(esme_mod, :wait_for_pdus, fn [{message_id, time_to_sleep} | rest_message_ids],
+                                             :esme,
+                                             _timeout ->
       dlr = Factory.delivery_report(message_id, {"from", 1, 1}, {"to", 1, 1})
       Timer.sleep(time_to_sleep)
       {[{:ok, submit_sm1}, {:ok, submit_sm2}, {:pdu, dlr}], rest_message_ids}
     end)
 
     assert {:error, _} = ESMEHelpers.wait_dlrs(:esme, message_ids, 15, esme_mod)
-
   end
 
   test "wait_dlrs: mixed wait results" do
-
-
     message_ids = ["1", "2"]
 
     esme_mod = Doppler.start(message_ids)
 
-    Doppler.def(esme_mod, :wait_for_pdus, fn([message_id | rest_message_ids], :esme, _timeout) ->
+    Doppler.def(esme_mod, :wait_for_pdus, fn [message_id | rest_message_ids], :esme, _timeout ->
       ok = {:ok, Factory.submit_sm({"from", 1, 1}, {"to", 1, 1}, "hello1")}
       dlr = {:pdu, Factory.delivery_report(message_id, {"from", 1, 1}, {"to", 1, 1})}
-      resp = {:resp, Factory.enquire_link_resp, Factory.enquire_link}
-      error = {:error, Factory.enquire_link, "oops"}
-      timeout = {:timeout, Factory.enquire_link}
+      resp = {:resp, Factory.enquire_link_resp(), Factory.enquire_link()}
+      error = {:error, Factory.enquire_link(), "oops"}
+      timeout = {:timeout, Factory.enquire_link()}
       {[ok, resp, error, timeout, dlr], rest_message_ids}
     end)
 
     assert :ok = ESMEHelpers.wait_dlrs(:esme, message_ids, 10, esme_mod)
-
   end
 
   test "wait_infinitely, ok" do
     esme_mod = Doppler.start(nil)
 
-    next = fn(_,_,_) -> :ok end
+    next = fn _, _, _ -> :ok end
 
-    Doppler.def(esme_mod, :wait_for_pdus, fn(_, :esme) ->
+    Doppler.def(esme_mod, :wait_for_pdus, fn _, :esme ->
       dlr = {:pdu, Factory.delivery_report("message_id", {"from", 1, 1}, {"to", 1, 1})}
-      resp = {:resp, Factory.enquire_link_resp, Factory.enquire_link}
-      error = {:error, Factory.enquire_link, "oops"}
-      timeout = {:timeout, Factory.enquire_link}
+      resp = {:resp, Factory.enquire_link_resp(), Factory.enquire_link()}
+      error = {:error, Factory.enquire_link(), "oops"}
+      timeout = {:timeout, Factory.enquire_link()}
       {[resp, error, timeout, dlr], nil}
     end)
 
     assert :ok = ESMEHelpers.wait_infinitely(:esme, esme_mod, next)
-
   end
 
   test "wait_infinitely, stop" do
     esme_mod = Doppler.start(nil)
 
-    next = fn(_,_,_) -> :ok end
+    next = fn _, _, _ -> :ok end
 
-    Doppler.def(esme_mod, :wait_for_pdus, fn(_, :esme) ->
+    Doppler.def(esme_mod, :wait_for_pdus, fn _, :esme ->
       {:stop, nil}
     end)
 
     assert {:error, _} = ESMEHelpers.wait_infinitely(:esme, esme_mod, next)
-
   end
 
   test "wait_infinitely, timeout" do
     esme_mod = Doppler.start(nil)
 
-    next = fn(_,_,_) -> :ok end
+    next = fn _, _, _ -> :ok end
 
-    Doppler.def(esme_mod, :wait_for_pdus, fn(_, :esme) ->
+    Doppler.def(esme_mod, :wait_for_pdus, fn _, :esme ->
       {:timeout, nil}
     end)
 
     assert :ok = ESMEHelpers.wait_infinitely(:esme, esme_mod, next)
-
   end
 
   test "unbind, ok" do
     esme_mod = Doppler.start(nil)
 
-    Doppler.def(esme_mod, :request, fn(st, :esme, unbind_pdu) ->
+    Doppler.def(esme_mod, :request, fn st, :esme, unbind_pdu ->
       assert Pdu.command_name(unbind_pdu) == :unbind
-      {{:ok, Factory.unbind_resp}, st}
+      {{:ok, Factory.unbind_resp()}, st}
     end)
 
     assert :ok = ESMEHelpers.unbind(:esme, esme_mod)
@@ -293,7 +278,7 @@ defmodule SMPPSend.ESMEHelpersTest do
   test "unbind, timeout" do
     esme_mod = Doppler.start(nil)
 
-    Doppler.def(esme_mod, :request, fn(st, :esme, unbind_pdu) ->
+    Doppler.def(esme_mod, :request, fn st, :esme, unbind_pdu ->
       assert Pdu.command_name(unbind_pdu) == :unbind
       {:timeout, st}
     end)
@@ -304,7 +289,7 @@ defmodule SMPPSend.ESMEHelpersTest do
   test "unbind, stop" do
     esme_mod = Doppler.start(nil)
 
-    Doppler.def(esme_mod, :request, fn(st, :esme, unbind_pdu) ->
+    Doppler.def(esme_mod, :request, fn st, :esme, unbind_pdu ->
       assert Pdu.command_name(unbind_pdu) == :unbind
       {:stop, st}
     end)
@@ -315,12 +300,11 @@ defmodule SMPPSend.ESMEHelpersTest do
   test "unbind, error" do
     esme_mod = Doppler.start(nil)
 
-    Doppler.def(esme_mod, :request, fn(st, :esme, unbind_pdu) ->
+    Doppler.def(esme_mod, :request, fn st, :esme, unbind_pdu ->
       assert Pdu.command_name(unbind_pdu) == :unbind
       {{:error, :ooops}, st}
     end)
 
     assert {:error, _} = ESMEHelpers.unbind(:esme, esme_mod)
   end
-
 end

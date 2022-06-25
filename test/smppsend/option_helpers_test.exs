@@ -9,7 +9,7 @@ defmodule SMPPSend.OptionHelpersTest do
   end
 
   test "set_defaults" do
-    assert Keyword.equal?([a: :b, c: :d, e: :f], set_defaults([a: :b, e: :f], [a: 123, c: :d]))
+    assert Keyword.equal?([a: :b, c: :d, e: :f], set_defaults([a: :b, e: :f], a: 123, c: :d))
   end
 
   test "convert_to_ucs2, ok" do
@@ -39,5 +39,4 @@ defmodule SMPPSend.OptionHelpersTest do
   test "decode_hex_string, alphabet error" do
     assert {:error, _} = decode_hex_string([a: "hello", b: "пока"], :a)
   end
-
 end

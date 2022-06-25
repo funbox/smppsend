@@ -83,14 +83,13 @@ Example:
 
   def help do
     @help
-      |> replace(~r/--[\w\-]+/, fn(m) -> ~s/#{m}/gd end)
-      |> replace(~r/g<(.*?)>/, fn(_, m) -> ~s/#{m}/gd end)
-      |> replace(~r/y<(.*?)>/, fn(_, m) -> ~s/#{m}/yd end)
-      |> replace(~r/C<(.*?)>/, fn(_, m) -> ~s/#{m}/DCd end)
+    |> replace(~r/--[\w\-]+/, fn m -> ~s/#{m}/gd end)
+    |> replace(~r/g<(.*?)>/, fn _, m -> ~s/#{m}/gd end)
+    |> replace(~r/y<(.*?)>/, fn _, m -> ~s/#{m}/yd end)
+    |> replace(~r/C<(.*?)>/, fn _, m -> ~s/#{m}/DCd end)
   end
 
   defp replace(string, re, replacement) do
     Regex.replace(re, string, replacement)
   end
-
 end
