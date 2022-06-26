@@ -86,9 +86,7 @@ defmodule SMPPSend.PduHelpers do
 
       false ->
         {:error,
-         "Bad bind mode: #{inspect(mode)}, only following modes allowed: #{
-           @bind_modes |> Map.keys() |> Enum.join(", ")
-         }"}
+         "Bad bind mode: #{inspect(mode)}, only following modes allowed: #{@bind_modes |> Map.keys() |> Enum.join(", ")}"}
     end
   end
 
