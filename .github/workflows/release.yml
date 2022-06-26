@@ -58,5 +58,6 @@ jobs:
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
         prerelease: false
+        title: Precompiled `smppsend` for the latest OTP versions
         files: |
           otp-*/smppsend-*
