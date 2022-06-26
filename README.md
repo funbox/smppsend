@@ -6,22 +6,9 @@ Simple utility for testing SMSC connections. It allows to bind to SMSCs, send `s
 
 ## Build
 
-If you want just to build `smppsend` executable for you current platform, just run:
-
 ```bash
-mix do deps.get, escript.build
+mix do deps.get,escript.build
 ```
-
-If you want to make a Linux-compatible binary for specific versions of OTP platform
-(for example, OTP 19), run
-
-```bash
-make VERSIONS=19
-```
-
-You need [Docker](https://www.docker.com/) installed to build.
-
-You can also download precompiled Linux-compatible binaries from “[Releases](https://github.com/funbox/smppsend/releases)” page.
 
 ## Usage
 
