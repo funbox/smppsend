@@ -16,26 +16,20 @@ jobs:
     strategy:
       matrix:
         include:
-          - elixir: 1.9.0
-            otp_release: 21.3.8.24
+          - elixir: "1.9"
+            otp_release: 21
 
-          - elixir: 1.9.0
-            otp_release: 22.3.4.23
+          - elixir: "1.9"
+            otp_release: 22
 
-          - elixir: 1.10.3
-            otp_release: 23.3.4.9
+          - elixir: "1.10"
+            otp_release: 23
 
-          - elixir: 1.11.4
-            otp_release: 24.1.6
+          - elixir: "1.13"
+            otp_release: 24
 
-          - elixir: 1.12.3
-            otp_release: 24.1.6
-
-          - elixir: 1.13.4
-            otp_release: 24.2.1
-
-          - elixir: 1.13.4
-            otp_release: 25.0.1
+          - elixir: "1.13"
+            otp_release: 25
     steps:
     - uses: actions/checkout@v3
     - name: Set up Elixir
@@ -53,6 +47,8 @@ jobs:
       run: mix deps.get
     - name: Run tests
       run: mix test
+    - name: Build escript
+      run: mix escript.build
 
   check-formatting:
     name: Check formatting

@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - elixir: "1.9"
+            otp_release: 21
+
+          - elixir: "1.9"
+            otp_release: 22
+
+          - elixir: "1.10"
+            otp_release: 23
+
+          - elixir: "1.13"
+            otp_release: 24
+
+          - elixir: "1.13"
+            otp_release: 25
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Elixir
+      uses: erlef/setup-beam@988e02bfe678367a02564f65ca2e37726dc0268f
+      with:
+        elixir-version: ${{ matrix.elixir }}
+        otp-version: ${{ matrix.otp_release }}
+    - name: Install dependencies
+      run: mix deps.get
+    - name: Test
+      run: mix test
+    - name: Build escript
+      run: mix escript.build
+    - name: Rename escript
+      run: "mv smppsend smppsend-${{ matrix.otp_release }}"
+    - uses: actions/upload-artifact@v3
+      with:
+        name: otp-${{ matrix.otp_release }}
+        path: smppsend-${{ matrix.otp_release }}
+
+  tagged-release:
+    name: "Tagged Release"
+    runs-on: "ubuntu-latest"
+    needs:
+      - build
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+    - uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        prerelease: false
+        files: |
+          otp-*/smppsend-*
