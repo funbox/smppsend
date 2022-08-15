@@ -49,7 +49,7 @@ defmodule SMPPSend.ESMEHelpers do
     end
   end
 
-  def send_messages(_esme, _submit_sms, _esme_mod \\ SMPPEX.ESME.Sync, _message_ids \\ [])
+  def send_messages(_esme, _submit_sms, _esme_mod \\ SMPPSend.ESMESync, _message_ids \\ [])
 
   def send_messages(_esme, [], _esme_mod, message_ids), do: {:ok, Enum.reverse(message_ids)}
 
@@ -79,7 +79,7 @@ defmodule SMPPSend.ESMEHelpers do
     end
   end
 
-  def wait_dlrs(_esme, _message_ids, _timeout, _esme_mod \\ SMPPEX.ESME.Sync)
+  def wait_dlrs(_esme, _message_ids, _timeout, _esme_mod \\ SMPPSend.ESMESync)
 
   def wait_dlrs(_esme, [], _timeout, _esme_mod), do: :ok
 
@@ -113,7 +113,7 @@ defmodule SMPPSend.ESMEHelpers do
     end)
   end
 
-  def wait_infinitely(esme, esme_mod \\ SMPPEX.ESME.Sync, next \\ &wait_infinitely/3)
+  def wait_infinitely(esme, esme_mod \\ SMPPSend.ESMESync, next \\ &wait_infinitely/3)
 
   def wait_infinitely(esme, esme_mod, next) do
     Logger.info("Waiting...")
@@ -174,7 +174,7 @@ defmodule SMPPSend.ESMEHelpers do
     handle_async_results(esme, rest_pdus, esme_mod, message_ids)
   end
 
-  def unbind(esme, esme_mod \\ SMPPEX.ESME.Sync) do
+  def unbind(esme, esme_mod \\ SMPPSend.ESMESync) do
     unbind_pdu = Factory.unbind()
     Logger.info("Sending unbind:#{PP.format(unbind_pdu)}")
     response = esme_mod.request(esme, unbind_pdu)
