@@ -9,6 +9,8 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    env:
+      ImageOS: ubuntu20
     strategy:
       matrix:
         include:
@@ -49,6 +51,8 @@ jobs:
   tagged-release:
     name: "Tagged Release"
     runs-on: "ubuntu-latest"
+    env:
+      ImageOS: ubuntu20
     needs:
       - build
     steps:

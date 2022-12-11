@@ -13,6 +13,8 @@ jobs:
   build:
     name: Build and test
     runs-on: ubuntu-latest
+    env:
+      ImageOS: ubuntu20
     strategy:
       matrix:
         include:
@@ -53,6 +55,8 @@ jobs:
   check-formatting:
     name: Check formatting
     runs-on: ubuntu-latest
+    env:
+      ImageOS: ubuntu20
     steps:
     - uses: actions/checkout@v3
     - name: Set up Elixir
