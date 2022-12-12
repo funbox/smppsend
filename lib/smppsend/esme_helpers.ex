@@ -49,20 +49,22 @@ defmodule SMPPSend.ESMEHelpers do
     end
   end
 
-  def send_messages(_esme, _submit_sms, _esme_mod \\ SMPPSend.ESMESync, _message_ids \\ [])
+  def send_messages(_esme, _submit_sms, _timeout, _esme_mod \\ SMPPSend.ESMESync, _message_ids \\ [])
 
-  def send_messages(_esme, [], _esme_mod, message_ids), do: {:ok, Enum.reverse(message_ids)}
+  def send_messages(_esme, [], _timeout, _esme_mod, message_ids), do: {:ok, Enum.reverse(message_ids)}
 
-  def send_messages(esme, [submit_sm | submit_sms], esme_mod, message_ids) do
+  def send_messages(_esme, _submit_sms, timeout, _esme_mod, _message_ids) when timeout <= 0, do: {:error, "timeout"}
+
+  def send_messages(esme, [submit_sm | submit_sms],timeout, esme_mod, message_ids) do
     Logger.info("Sending submit_sm#{PP.format(submit_sm)}")
 
-    case esme_mod.request(esme, submit_sm) do
+    case esme_mod.request(esme, submit_sm, timeout) do
       {:ok, resp} ->
         Logger.info("Got response#{PP.format(resp)}")
 
         case Pdu.command_status(resp) do
           0 ->
-            send_messages(esme, submit_sms, esme_mod, [Pdu.field(resp, :message_id) | message_ids])
+            send_messages(esme, submit_sms, timeout, esme_mod, [Pdu.field(resp, :message_id) | message_ids])
 
           status ->
             {:error, "message status: #{status}"}

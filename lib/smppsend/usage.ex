@@ -26,6 +26,8 @@ Available options are:
 
   --wait-dlrs y<timeout>                   Wait for for delivery reports for all sent submit_sm PDUs or exit with failure after y<timeout> ms
 
+  --wait-resp y<timeout>                   Redefine default timeout (5000 ms) for waiting submit_sm_resp in ms
+
   --wait                                Do not exit after sending submit_sm PDUs (and waiting for delivery reports if specified), but receive and display incoming PDUs infinitely
 
   --tls                                 Use ranch_ssl transport

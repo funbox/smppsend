@@ -43,6 +43,7 @@ defmodule SMPPSend do
     gsm: :boolean,
     latin1: :boolean,
     wait_dlrs: :integer,
+    wait_resp: :integer,
     wait: :boolean,
     tls: :boolean,
     sn: :integer
@@ -62,6 +63,7 @@ defmodule SMPPSend do
     binary: false,
     latin1: false,
     gsm: false,
+    wait_resp: 5000,
     wait: false,
     sn: 0
   ]
@@ -271,7 +273,7 @@ defmodule SMPPSend do
 
         case submit_sms do
           {:ok, pdus} ->
-            case SMPPSend.ESMEHelpers.send_messages(esme, pdus) do
+            case SMPPSend.ESMEHelpers.send_messages(esme, pdus, opts[:wait_resp]) do
               {:ok, message_ids} -> {:ok, {esme, opts, message_ids}}
               {:error, error} -> {:error, "Message submit failed, #{error}"}
             end
