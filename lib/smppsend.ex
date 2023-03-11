@@ -102,6 +102,19 @@ defmodule SMPPSend do
     System.halt(code)
   end
 
+  @main_in_app_start Application.compile_env(:smppsend, :main_in_app_start, false)
+
+  ## For Burrito
+  def start(_, _) do
+    case @main_in_app_start do
+      true ->
+        Burrito.Util.Args.get_arguments()
+        |> main()
+      false ->
+        Supervisor.start_link([], strategy: :one_for_one)
+    end
+  end
+
   defp parse(args) do
     {parsed, remaining, invalid} =
       OptionParser.parse(args, switches: @switches, allow_nonexistent_atoms: true)
