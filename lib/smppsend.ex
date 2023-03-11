@@ -102,6 +102,12 @@ defmodule SMPPSend do
     System.halt(code)
   end
 
+  ## For Burrito
+  def start(_, _) do
+    Burrito.Util.Args.get_arguments()
+    |> main()
+  end
+
   defp parse(args) do
     {parsed, remaining, invalid} =
       OptionParser.parse(args, switches: @switches, allow_nonexistent_atoms: true)
