@@ -13,7 +13,7 @@ dst_targz_name="${dst_name}.tar.gz"
 
 mkdir -p "$otp_dir"
 
-wget "$url" -O "$otp_dir/${targz_name}"
+wget --no-verbose "$url" -O "$otp_dir/${targz_name}"
 
 tar xf "$otp_dir/${targz_name}" -C "$otp_dir/"
 rm -rf "$otp_dir/${targz_name}"
