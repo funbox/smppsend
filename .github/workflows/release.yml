@@ -40,6 +40,8 @@ jobs:
   build-burrito:
     name: Build Burrito executables
     runs-on: ubuntu-latest
+    env:
+      MIX_ENV: burrito
     steps:
       - uses: actions/checkout@v2
       - name: Set up Elixir

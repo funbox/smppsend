@@ -104,8 +104,13 @@ defmodule SMPPSend do
 
   ## For Burrito
   def start(_, _) do
-    Burrito.Util.Args.get_arguments()
-    |> main()
+    case Application.get_env(:smppsend, :main_in_app_start, false) do
+      true ->
+        Burrito.Util.Args.get_arguments()
+        |> main()
+      false ->
+        Supervisor.start_link([], strategy: :one_for_one)
+    end
   end
 
   defp parse(args) do
