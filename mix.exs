@@ -37,28 +37,26 @@ defmodule Smppsend.Mixfile do
         steps: [:assemble, &Burrito.wrap/1],
         burrito: [
           targets: [
-            linux_aarch64: [
-              os: :linux,
-              cpu: :aarch64,
-              libc: :musl,
-              custom_erts: "burrito/otp/versions/otp-#{@burrito_otp_version}-linux-aarch64.tar.gz"
-            ],
+            # linux_aarch64: [
+            #   os: :linux,
+            #   cpu: :aarch64,
+            #   custom_erts: "burrito/otp/versions/otp-#{@burrito_otp_version}-linux-aarch64.tar.gz"
+            # ],
             linux_x86_64: [
               os: :linux,
               cpu: :x86_64,
-              libc: :musl,
               custom_erts: "burrito/otp/versions/otp-#{@burrito_otp_version}-linux-x86_64.tar.gz"
             ],
-            darwin_aarch64: [
-              os: :darwin,
-              cpu: :aarch64,
-              custom_erts: "burrito/otp/versions/otp-#{@burrito_otp_version}-darwin-aarch64.tar.gz"
-            ],
-            darwin_x86_64: [
-              os: :darwin,
-              cpu: :x86_64,
-              custom_erts: "burrito/otp/versions/otp-#{@burrito_otp_version}-linux-x86_64.tar.gz"
-            ],
+            # darwin_aarch64: [
+            #   os: :darwin,
+            #   cpu: :aarch64,
+            #   custom_erts: "burrito/otp/versions/otp-#{@burrito_otp_version}-darwin-aarch64.tar.gz"
+            # ],
+            # darwin_x86_64: [
+            #   os: :darwin,
+            #   cpu: :x86_64,
+            #   custom_erts: "burrito/otp/versions/otp-#{@burrito_otp_version}-linux-x86_64.tar.gz"
+            # ],
           ]
         ]
       ]
