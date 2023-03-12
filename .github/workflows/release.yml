@@ -13,19 +13,19 @@ jobs:
       matrix:
         include:
           - elixir: "1.9"
-            otp_release: 21
+            otp_release: "21"
 
           - elixir: "1.9"
-            otp_release: 22
+            otp_release: "22"
 
           - elixir: "1.10"
-            otp_release: 23
+            otp_release: "23"
 
           - elixir: "1.13"
-            otp_release: 24
+            otp_release: "24"
 
           - elixir: "1.14"
-            otp_release: 25
+            otp_release: "25"
     steps:
     - uses: actions/checkout@v3
     - name: Set up Elixir
@@ -51,6 +51,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Set up Elixir
+        uses: erlef/setup-beam@988e02bfe678367a02564f65ca2e37726dc0268f
+        with:
+          elixir-version: "1.14"
+          otp-version: "25"
+
       - uses: goto-bus-stop/setup-zig@v2
         with:
           version: 0.10.1
