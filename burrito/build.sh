@@ -14,4 +14,4 @@ OTP_VERSION="${otp_version}" ARCH=aarch64 OPENSSL_VERSION="${ssl_version}" ./bur
 OTP_VERSION="${otp_version}" ARCH=x86_64  LIBC=gnu OPENSSL_VERSION="${ssl_version}" ./burrito/download/linux.sh
 OTP_VERSION="${otp_version}" ARCH=aarch64 LIBC=gnu OPENSSL_VERSION="${ssl_version}" ./burrito/download/linux.sh
 
-MIX_ENV=prod mix release smppsend --overwrite
+mix release smppsend --overwrite
