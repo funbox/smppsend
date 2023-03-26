@@ -110,6 +110,7 @@ defmodule SMPPSend do
       true ->
         Burrito.Util.Args.get_arguments()
         |> main()
+
       false ->
         Supervisor.start_link([], strategy: :one_for_one)
     end

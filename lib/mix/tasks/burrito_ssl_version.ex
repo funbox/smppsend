@@ -8,4 +8,3 @@ defmodule Mix.Tasks.Burrito.Ssl.Version do
     IO.puts(Mix.Project.config()[:burrito_ssl_version])
   end
 end
-

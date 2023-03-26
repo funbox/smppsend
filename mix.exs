@@ -50,13 +50,14 @@ defmodule Smppsend.Mixfile do
             darwin_aarch64: [
               os: :darwin,
               cpu: :aarch64,
-              custom_erts: "burrito/otp/versions/otp-#{@burrito_otp_version}-darwin-aarch64.tar.gz"
+              custom_erts:
+                "burrito/otp/versions/otp-#{@burrito_otp_version}-darwin-aarch64.tar.gz"
             ],
             darwin_x86_64: [
               os: :darwin,
               cpu: :x86_64,
               custom_erts: "burrito/otp/versions/otp-#{@burrito_otp_version}-linux-x86_64.tar.gz"
-            ],
+            ]
           ]
         ]
       ]
@@ -69,7 +70,6 @@ defmodule Smppsend.Mixfile do
       {:dye, "~> 0.4.0"},
       {:codepagex, "~> 0.1.6"},
       {:burrito, github: "burrito-elixir/burrito"},
-
       {:coverex, "~> 1.4.1", only: :test},
       {:mox, "~> 1.0", only: :test}
     ]
