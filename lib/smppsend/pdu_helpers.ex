@@ -3,7 +3,7 @@ defmodule SMPPSend.PduHelpers do
   alias SMPPEX.Pdu.Factory
   alias SMPPEX.Protocol.CommandNames
 
-  use Bitwise
+  import Bitwise
 
   @submit_sm_field_names [
     :service_type,
