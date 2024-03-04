@@ -1,5 +1,5 @@
 defmodule SMPPSend.TlvParser do
-  use Bitwise
+  import Bitwise
 
   @tlv_re ~r/^tlv_(?:(?<hex_id>x[\da-fA-F]{4})|(?<name>[a-z\_]+))_(?<value_type>s|i(?<int_value_size>1|2|4|8)|h)$/
 

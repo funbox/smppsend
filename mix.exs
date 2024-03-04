@@ -69,7 +69,7 @@ defmodule Smppsend.Mixfile do
       {:smppex, "~> 2.0"},
       {:dye, "~> 0.4.0"},
       {:codepagex, "~> 0.1.6"},
-      {:burrito, github: "burrito-elixir/burrito"},
+      {:burrito, "~> 1.0"},
       {:coverex, "~> 1.4.1", only: :test},
       {:mox, "~> 1.0", only: :test}
     ]
